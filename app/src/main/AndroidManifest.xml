@@ -11,7 +11,8 @@
 
         <activity
                 android:name="com.poorfox.physicsdemo.MainActivity"
-                android:label="PhysicsDemo">
+                android:label="PhysicsDemo"
+                android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

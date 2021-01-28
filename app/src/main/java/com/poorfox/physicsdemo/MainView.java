@@ -54,15 +54,17 @@ public class MainView extends View {
         world = new MainWorld(w/scale,h/scale);
 
         timer = new Timer("physics update");
-        timer.schedule(new TimerTask() {
-            public void run() {
-            Vec2 pos = world.ball.getPosition();
-            x = pos.x * scale;
-            y = pos.y * scale;
-            r = world.ball.getFixtureList().getShape().getRadius() * scale;
-            world.step(dt);
-            world.world.setGravity(new Vec2(gravitySensor.gx, gravitySensor.gy));
-            invalidate();
+        timer.schedule(new TimerTask()
+        {
+            public void run()
+            {
+                Vec2 pos = world.ball.getPosition();
+                x = pos.x * scale;
+                y = pos.y * scale;
+                r = world.ball.getFixtureList().getShape().getRadius() * scale;
+                world.step(dt);
+                world.world.setGravity(new Vec2(gravitySensor.gx, gravitySensor.gy));
+                invalidate();
             }
         }, 0, (long) (dt * 1000));
     }
@@ -73,7 +75,7 @@ public class MainView extends View {
     {
         super.onDraw(canvas);
         if (w == 0) firstTime();
-        canvas.drawPaint(background);
+     //   canvas.drawPaint(background);
         canvas.drawCircle(x, y, r, ball);
     }
 
