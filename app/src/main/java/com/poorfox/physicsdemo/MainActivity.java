@@ -10,14 +10,20 @@ Implementation notes:
 
 TODO:   x = do it now
 
+- Single tap mode
+    - open details
+    - select stuff (toggle) in preparation for drag or copy
+
 - Modes:
     - Play simulation y/n
-    - Grab stuff y/n
-    - Open details
+    - toggle mode:
+        - Edit mode (Grab and drag or open details)
+        - Select stuff
+        - View mode
 - Buttons
     play/pause (single Step?)
     zoom in/out (short side scrub)
-    edit yes/no
+    mode - edit, view, select
     reset view (fit all, toggle)
 - File
     save/restore (named, unnamed)
