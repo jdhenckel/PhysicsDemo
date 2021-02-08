@@ -58,7 +58,7 @@ public class BodyPainter
     }
 
 
-    private static float toDegrees(float radians)
+    public static float toDegrees(float radians)
     {
         return radians * 180 / 3.14159265359f;
     }
