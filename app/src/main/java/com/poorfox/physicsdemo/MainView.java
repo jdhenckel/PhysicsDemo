@@ -18,17 +18,12 @@ import java.util.TimerTask;
 public class MainView extends View {
 
     int deviceWidth, deviceHeight;
-    //float scale;
-    //Vec2 zoomRotate;
-    //Vec2 pan;
-    //Matrix cameraMatrix;
-    TRS camTRS;
+    Matrix cameraMatrix;
+    Matrix lastMatrix;
+    int lastFingers;
     Timer timer;
     MainWorld mainWorld;
     InputListener inputListener;
-    int lastFingers;
-    //Matrix lastMatrix;
-    TRS lastTRS;
     GravitySensor gravitySensor;
     SensorManager sensorManager;
     Context mainActivity;
@@ -40,11 +35,9 @@ public class MainView extends View {
         super(context);
         mainActivity = context;
         gravitySensor = new GravitySensor();
-        log = new ArrayList<String>();
+        log = new ArrayList<>();
         timing = new Timing();
-        //zoomRotate = new Vec2(1000, 0);
-        //pan = new Vec2(0, 0);
-        //cameraMatrix = new Matrix();
+        cameraMatrix = new Matrix();
     }
 
     private void firstTime()
@@ -53,11 +46,6 @@ public class MainView extends View {
         deviceHeight = getHeight();
 
         float scale = 4;//1000;  // pixels per meter ?
-
-        //cameraMatrix.setScale(scale, scale);
-        camTRS = new TRS(1);
-        //cameraMatrix.setTranslate(0, 0);
-        //cameraMatrix.setRotate(90);
 
         final float dt = 1 / 60.f;            // timestep in seconds
 
@@ -93,31 +81,20 @@ public class MainView extends View {
         int fingers = inputListener.isDown;
 
         // At the end of the gesture, "burn" the input matrix into the camera matrix
-        if (lastFingers != fingers && lastTRS != null)
+        if (lastFingers != fingers && lastMatrix != null)
         {
-            //camTRS = combine(lastTRS, camTRS);
-            //cameraMatrix.postConcat(lastMatrix);
-            //lastMatrix = null;
-
+            cameraMatrix.preConcat(lastMatrix);
         }
 
         lastFingers = fingers;
-        //lastMatrix = inputListener.getTransform();
-        camTRS = inputListener.getTRS();
-        if (camTRS == null) camTRS = new TRS(1);
-        //camTRS.s *= 150;
-        Vec2 cc = camTRS.getC().sub(camTRS.getT());
-
+        lastMatrix = inputListener.getTransform().getMatrix();
         //---------------------
 
         timing.startDraw();
 
         canvas.save();
-        canvas.translate(camTRS.tx,camTRS.ty);
-        canvas.translate(cc.x, cc.y );
-        canvas.rotate(camTRS.deg);
-        canvas.scale(camTRS.s,camTRS.s );
-        canvas.translate(-cc.x, -cc.y );
+        canvas.setMatrix(cameraMatrix);
+        canvas.concat(lastMatrix);
         mainWorld.onDraw(canvas);
         canvas.restore();
         drawWidgets(canvas);
@@ -126,51 +103,6 @@ public class MainView extends View {
     }
 
 
-    //canvas.translate(500,500);
-    //canvas.rotate(45);
-    //canvas.translate(deviceWidth/2, deviceHeight/2);
-    //canvas.translate(     .72f,1.28f);
-    //      canvas.translate(  cc.x, cc.y   );
-    //canvas.scale(250,250);
-//        canvas.translate(  -cc.x,-cc.y   );
-//        canvas.translate(     -.72f,-1.28f);
-    //new Vec2(camTRS.cx,camTRS.cy);
-        /*
-                lastTRS = TRS.create(700,1200, 0, 1000);
-        canvas.translate(  bc.x,bc.y);
-        */
-    //print(deviceWidth + ", " + deviceHeight);
-    //canvas.scale(1000,1000);
-    //canvas.setMatrix(lastMatrix);
-    //canvas.concat(cameraMatrix);
-
-
-        /*
-        Vec2 p = inputListener.getPan();
-        Vec2 zr = inputListener.getZoomAndRotation();
-        Vec2 center = inputListener.getCenter();
-
-        // ??????????????
-        //Mat22 m = Mat22.createRotationalTransform(zr.y);
-        //Vec2 g = m.mul(center);
-        //p.addLocal(center.sub(g));
-
-
-        pan.addLocal(p);
-        //zoomRotate.x *= zr.x;
-        zoomRotate.y += zr.y;
-
-        // the rotation will be around the body origin but it should be around the
-        // center of touch. so this will adjust the pan to move the body origin to
-        // the right place to keep the center from moving.
-
-        Vec2 cp = center.sub(pan);
-        Vec2 cpr = rotate(cp, zr.y);
-        pan.subLocal(cpr.sub(cp));
-
-        inputListener.startTransform();;
-
-         */
 
     public static Vec2 rotate(Vec2 v, float angle)
     {
