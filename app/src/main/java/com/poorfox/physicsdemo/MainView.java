@@ -18,6 +18,8 @@ import java.util.TimerTask;
 public class MainView extends View {
 
     int deviceWidth, deviceHeight;
+    float cameraAngle;
+    float lastAngle;
     Matrix cameraMatrix;
     Matrix lastMatrix;
     int lastFingers;
@@ -30,6 +32,7 @@ public class MainView extends View {
     List<String> log;
     Timing timing;
 
+
     public MainView(Context context)
     {
         super(context);
@@ -38,6 +41,7 @@ public class MainView extends View {
         log = new ArrayList<>();
         timing = new Timing();
         cameraMatrix = new Matrix();
+        cameraAngle = 90;
     }
 
     private void firstTime()
@@ -45,11 +49,14 @@ public class MainView extends View {
         deviceWidth = getWidth();
         deviceHeight = getHeight();
 
-        float scale = 4;//1000;  // pixels per meter ?
+        //float scale = 1000;   ?
+        float scale = (deviceWidth + deviceHeight) / 10;   // pixels per meter
+        float w = Math.max(deviceHeight, deviceWidth) / scale;
+        float h = Math.min(deviceHeight, deviceWidth) / scale;
 
         final float dt = 1 / 60.f;            // timestep in seconds
 
-        mainWorld = new MainWorld(deviceWidth / scale, deviceHeight / scale);
+        mainWorld = new MainWorld(w, h);
 
         timer = new Timer("physics update");
         timer.scheduleAtFixedRate(new TimerTask()
@@ -58,7 +65,9 @@ public class MainView extends View {
             {
                 timing.startSim();
                 mainWorld.step(dt);
-                mainWorld.world.setGravity(new Vec2(gravitySensor.gx, gravitySensor.gy));
+                Vec2 grav = new Vec2(-gravitySensor.gx, -gravitySensor.gy);
+                grav = rotate(grav, radians(cameraAngle));
+                mainWorld.world.setGravity(grav);
                 timing.start();
                 invalidate();
             }
@@ -67,6 +76,11 @@ public class MainView extends View {
         inputListener = new InputListener();
         setOnTouchListener(inputListener);
         inputListener.enableDebug(this);
+
+        Vec2 t = new Vec2(h/2, -h/2);
+        Vec2 c = rotate(t, radians(90));
+        Transform tran = new Transform(t, c, 90, scale);
+        cameraMatrix = tran.getMatrix();
     }
 
 
@@ -83,18 +97,26 @@ public class MainView extends View {
         // At the end of the gesture, "burn" the input matrix into the camera matrix
         if (lastFingers != fingers && lastMatrix != null)
         {
-            cameraMatrix.preConcat(lastMatrix);
+            cameraMatrix.postConcat(lastMatrix);
+            cameraAngle -= lastAngle;
         }
 
         lastFingers = fingers;
-        lastMatrix = inputListener.getTransform().getMatrix();
+        Transform tr = inputListener.getTransform();
+        lastMatrix = tr.getMatrix();
+        lastAngle = tr.deg;
+
         //---------------------
+        log.clear();
+        print("cam " + cameraAngle);
 
         timing.startDraw();
 
         canvas.save();
-        canvas.setMatrix(cameraMatrix);
-        canvas.concat(lastMatrix);
+
+        canvas.setMatrix(lastMatrix);
+        canvas.concat(cameraMatrix);
+
         mainWorld.onDraw(canvas);
         canvas.restore();
         drawWidgets(canvas);
@@ -106,9 +128,14 @@ public class MainView extends View {
 
     public static Vec2 rotate(Vec2 v, float angle)
     {
-        float c = MathUtils.cos(angle);
-        float s = MathUtils.sin(angle);
+        float c = MathUtils.cos(angle); // 0
+        float s = MathUtils.sin(angle); // 1
         return new Vec2(c * v.x - s * v.y, s * v.x + c * v.y);
+    }
+
+    public static float radians(float deg)
+    {
+        return deg / 57.2957795131f;
     }
 
     public void onPause() {

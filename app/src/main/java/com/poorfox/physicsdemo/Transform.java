@@ -46,5 +46,9 @@ public class Transform
         return m;
     }
 
-
+    @Override
+    public String toString()
+    {
+        return "{t=" + translate +", c=" + center +", d=" + deg +", s=" + scale +'}';
+    }
 }
