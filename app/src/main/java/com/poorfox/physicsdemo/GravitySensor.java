@@ -8,7 +8,7 @@ public class GravitySensor implements SensorEventListener {
     float gx,gy,gz;
     @Override
     public final void onSensorChanged(SensorEvent event) {
-        gx = -event.values[0];
+        gx = event.values[0];
         gy = event.values[1];
         gz = event.values[2];
     }

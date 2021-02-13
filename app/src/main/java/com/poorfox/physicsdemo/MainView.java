@@ -18,8 +18,6 @@ import java.util.TimerTask;
 public class MainView extends View {
 
     int deviceWidth, deviceHeight;
-    float cameraAngle;
-    float lastAngle;
     Matrix cameraMatrix;
     Matrix lastMatrix;
     int lastFingers;
@@ -41,7 +39,6 @@ public class MainView extends View {
         log = new ArrayList<>();
         timing = new Timing();
         cameraMatrix = new Matrix();
-        cameraAngle = 90;
     }
 
     private void firstTime()
@@ -65,8 +62,9 @@ public class MainView extends View {
             {
                 timing.startSim();
                 mainWorld.step(dt);
-                Vec2 grav = new Vec2(-gravitySensor.gx, -gravitySensor.gy);
-                grav = rotate(grav, radians(cameraAngle));
+                Vec2 grav = new Vec2(gravitySensor.gx, gravitySensor.gy);
+                float r = Transform.getAngleFromMatrix(cameraMatrix);
+                grav = rotate(grav, -r);
                 mainWorld.world.setGravity(grav);
                 timing.start();
                 invalidate();
@@ -78,8 +76,8 @@ public class MainView extends View {
         inputListener.enableDebug(this);
 
         Vec2 t = new Vec2(h/2, -h/2);
-        Vec2 c = rotate(t, radians(90));
-        Transform tran = new Transform(t, c, 90, scale);
+        float r = MathUtils.PI/2;
+        Transform tran = new Transform(t, rotate(t, r), r, scale);
         cameraMatrix = tran.getMatrix();
     }
 
@@ -98,44 +96,45 @@ public class MainView extends View {
         if (lastFingers != fingers && lastMatrix != null)
         {
             cameraMatrix.postConcat(lastMatrix);
-            cameraAngle -= lastAngle;
         }
 
         lastFingers = fingers;
-        Transform tr = inputListener.getTransform();
-        lastMatrix = tr.getMatrix();
-        lastAngle = tr.deg;
+        if (inputListener.isDown==1) {
 
-        //---------------------
-        log.clear();
-        print("cam " + cameraAngle);
+            // This code is an experiment to map from device space to world space.
+            float[] pts = new float[2];
+            Vec2 t = inputListener.touch[0];
+            pts[0] = t.x;
+            pts[1] = t.y;
+            log.clear();
+            print("from " + pts[0] + ", "+pts[1]);
+            Matrix inv = new Matrix();
+            cameraMatrix.invert(inv);
+            inv.mapPoints(pts);
+            print("to   " + pts[0] + ", "+pts[1]);
+
+        }
+        else
+            lastMatrix = inputListener.getTransform().getMatrix();
 
         timing.startDraw();
 
         canvas.save();
-
         canvas.setMatrix(lastMatrix);
         canvas.concat(cameraMatrix);
-
         mainWorld.onDraw(canvas);
         canvas.restore();
+
         drawWidgets(canvas);
         drawLog(canvas);
         timing.start();
     }
 
-
-
-    public static Vec2 rotate(Vec2 v, float angle)
+    public static Vec2 rotate(Vec2 v, float radians)
     {
-        float c = MathUtils.cos(angle); // 0
-        float s = MathUtils.sin(angle); // 1
+        float c = MathUtils.cos(radians);
+        float s = MathUtils.sin(radians);
         return new Vec2(c * v.x - s * v.y, s * v.x + c * v.y);
-    }
-
-    public static float radians(float deg)
-    {
-        return deg / 57.2957795131f;
     }
 
     public void onPause() {
@@ -181,6 +180,7 @@ public class MainView extends View {
             canvas.drawLine(0, i, deviceWidth, i, paint);
             canvas.drawLine(i, 0, i, deviceHeight, paint);
         }
+       // canvas.drawCircle(200,200,100,paint);
     }
 
     class Widget {

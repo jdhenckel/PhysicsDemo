@@ -69,7 +69,7 @@ public class InputListener implements View.OnTouchListener
                 float cc = Vec2.dot(a, b) / (alen * blen);
                 float ac = cc >= 1 ? 0 : (float) Math.acos(cc);  // TODO - use mathutils ATAN2
                 float theta = sg < 0 ? -ac : ac;
-                transform.setRadians(theta);
+                transform.rotation = theta;
                 transform.scale = blen / alen;
             }
             return transform;
