@@ -12,6 +12,7 @@
         <activity
                 android:name="com.poorfox.physicsdemo.MainActivity"
                 android:label="PhysicsDemo"
+                android:screenOrientation="landscape"
                 android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

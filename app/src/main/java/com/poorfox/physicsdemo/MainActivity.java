@@ -3,6 +3,9 @@ package com.poorfox.physicsdemo;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import androidx.appcompat.app.AppCompatActivity;
 
 /*
@@ -74,10 +77,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Remove system nav bar and grill (deprecated)
+        getWindow().getDecorView().setSystemUiVisibility(0x0f06);
         view = new MainView(this);
         setContentView(view);
     }
-
 
 
     @Override

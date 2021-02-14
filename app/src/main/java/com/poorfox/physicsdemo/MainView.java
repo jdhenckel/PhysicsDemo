@@ -22,6 +22,7 @@ public class MainView extends View {
     Matrix lastMatrix;
     int lastFingers;
     Timer timer;
+    Matrix deviceMatrix;
     MainWorld mainWorld;
     InputListener inputListener;
     GravitySensor gravitySensor;
@@ -39,21 +40,22 @@ public class MainView extends View {
         log = new ArrayList<>();
         timing = new Timing();
         cameraMatrix = new Matrix();
+        deviceMatrix = new Matrix();
     }
 
     private void firstTime()
     {
         deviceWidth = getWidth();
         deviceHeight = getHeight();
+        print("width = " + deviceWidth);
+        print("height = " + deviceHeight);
 
-        //float scale = 1000;   ?
-        float scale = (deviceWidth + deviceHeight) / 10;   // pixels per meter
-        float w = Math.max(deviceHeight, deviceWidth) / scale;
-        float h = Math.min(deviceHeight, deviceWidth) / scale;
+        float scale = deviceWidth / 10;   // pixels per meter
+
 
         final float dt = 1 / 60.f;            // timestep in seconds
 
-        mainWorld = new MainWorld(w, h);
+        mainWorld = new MainWorld(10, 10*deviceHeight/deviceWidth);
 
         timer = new Timer("physics update");
         timer.scheduleAtFixedRate(new TimerTask()
@@ -62,9 +64,9 @@ public class MainView extends View {
             {
                 timing.startSim();
                 mainWorld.step(dt);
-                Vec2 grav = new Vec2(gravitySensor.gx, gravitySensor.gy);
+                Vec2 grav = new Vec2(gravitySensor.gy, -gravitySensor.gx);
                 float r = Transform.getAngleFromMatrix(cameraMatrix);
-                grav = rotate(grav, -r);
+                grav = rotate(grav, r);
                 mainWorld.world.setGravity(grav);
                 timing.start();
                 invalidate();
@@ -75,10 +77,15 @@ public class MainView extends View {
         setOnTouchListener(inputListener);
         inputListener.enableDebug(this);
 
-        Vec2 t = new Vec2(h/2, -h/2);
-        float r = MathUtils.PI/2;
-        Transform tran = new Transform(t, rotate(t, r), r, scale);
-        cameraMatrix = tran.getMatrix();
+        // Scale the display to width 100, with origin in UPPER left
+        float deviceScale = deviceWidth / 100;
+        deviceMatrix.preScale(deviceScale, deviceScale);
+
+        // Scale the camera to width 10, with origin in LOWER left
+        cameraMatrix.setTranslate(0, -deviceHeight/scale);
+        cameraMatrix.preScale(scale, -scale);
+        cameraMatrix.preTranslate(0, -deviceHeight/scale);
+
     }
 
 
@@ -125,8 +132,11 @@ public class MainView extends View {
         mainWorld.onDraw(canvas);
         canvas.restore();
 
+        canvas.save();
+        canvas.setMatrix(deviceMatrix);
         drawWidgets(canvas);
         drawLog(canvas);
+        canvas.restore();
         timing.start();
     }
 
@@ -155,12 +165,9 @@ public class MainView extends View {
 
     private void drawLog(Canvas canvas)
     {
-        // for convenience normalize width to 100
-        canvas.save();
-        canvas.scale(deviceWidth/100.f, deviceWidth/100.f);
         Paint paint = new Paint();
         paint.setColor(0xFF80FF80);
-        float f = 1.6f * (deviceHeight + deviceWidth) / deviceWidth;
+        float f = 2.5f;
         paint.setTextSize(f);
         float i = f * 3;
         for (String s : log) {
@@ -168,19 +175,22 @@ public class MainView extends View {
             i += f;
         }
         if (log.size() > 30) log.clear();
-        canvas.restore();
     }
 
     private void drawWidgets(Canvas canvas)
     {
         Paint paint = new Paint();
         paint.setColor(0xFF80FF80);
-        for (int i = 0; i < 2000; i += 200)
+        for (int i = 0; i < 110; i += 10)
         {
-            canvas.drawLine(0, i, deviceWidth, i, paint);
-            canvas.drawLine(i, 0, i, deviceHeight, paint);
+            canvas.drawLine(0, i, 100, i, paint);
+            canvas.drawLine(i, 0, i, 100, paint);
         }
-       // canvas.drawCircle(200,200,100,paint);
+        paint.setColor(0xff8f0000);
+        canvas.drawCircle(98,4,3,paint);
+        paint.setColor(0xFF000000);
+        paint.setTextSize(2.5f);
+        canvas.drawText("EDIT", 95, 4, paint);
     }
 
     class Widget {
