@@ -77,8 +77,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Remove system nav bar and grill (deprecated)
-        getWindow().getDecorView().setSystemUiVisibility(0x0f06);
         view = new MainView(this);
         setContentView(view);
     }
