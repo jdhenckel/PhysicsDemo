@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Build;
@@ -108,7 +110,7 @@ public class MainView extends View
         }
 
         lastFingers = fingers;
-        if (inputListener.isDown==1)
+        if (inputListener.isDown == 1)
         {
             // This code is an experiment to map from device space to world space.
             float[] pts = new float[2];
@@ -123,7 +125,7 @@ public class MainView extends View
             print("to   " + pts[0] + ", " + pts[1]);
         }
         //else
-            lastMatrix = inputListener.getTransform().getMatrix();
+        lastMatrix = inputListener.getTransform().getMatrix();
 
         timing.startDraw();
 
@@ -148,12 +150,15 @@ public class MainView extends View
         return new Vec2(c * v.x - s * v.y, s * v.x + c * v.y);
     }
 
-    public void onPause() {
+    public void onPause()
+    {
         sensorManager.unregisterListener(gravitySensor);
     }
 
-    public void onResume() {
-        if (sensorManager == null) sensorManager = (SensorManager) mainActivity.getSystemService(Context.SENSOR_SERVICE);
+    public void onResume()
+    {
+        if (sensorManager == null)
+            sensorManager = (SensorManager) mainActivity.getSystemService(Context.SENSOR_SERVICE);
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         if (sensor != null)
             sensorManager.registerListener(gravitySensor, sensor, SensorManager.SENSOR_DELAY_NORMAL);
@@ -168,11 +173,12 @@ public class MainView extends View
     {
         Paint paint = new Paint();
         paint.setColor(0xFF80FF80);
-        float f = 30;
+        float f = 60;
         paint.setTextSize(f);
-        float i = f * 3 - height;
-        for (String s : log) {
-            canvas.drawText(s, f * 2, i, paint);
+        float i = f * 6;
+        for (String s : log)
+        {
+            canvas.drawText(s, f * 5, i, paint);
             i += f;
         }
         if (log.size() > 30) log.clear();
@@ -187,53 +193,9 @@ public class MainView extends View
             canvas.drawLine(0, i, height, i, paint);
             canvas.drawLine(i, 0, i, width, paint);
         }
-        paint.setColor(0xffff8080);
-        canvas.drawCircle(400,400,100,paint);
 
-        //paint.setColor(0xFF000000);
-        //paint.setTextSize(70);
-        //canvas.drawText("EDIT", 400-50,400+20, paint);
-
-        Widget edit = new Widget(19,19,"EDIT");
+        Widget edit = new Widget(19, 19, "MODE");
         edit.onDraw(canvas);
-
-    }
-
-    class Widget {
-        int x,y,w,h;
-        String label;
-        Paint paint;
-
-        Widget(int x, int y, String label)
-        {
-            this.x = x; this.y = y; this.label = label;
-            w = h = 200;
-            paint = new Paint();
-        }
-
-        void onDraw(Canvas canvas)
-        {
-            paint.setColor(Color.rgb(173, 177, 179));
-            //canvas.drawRoundRect(-10,-10,290,290,29,29,paint);
-            drawRect(canvas, 0, 0, -50, -50, 50);
-            paint.setColor(Color.rgb(10,10,10));
-            drawRect(canvas, 20, 20);
-            paint.setColor(Color.rgb(63, 84, 89));
-            drawRect(canvas, 0, 0);
-            paint.setColor(Color.rgb(213, 221, 224));
-            drawRect(canvas, 0, 0, 20, 20, 20);
-            int s = Math.min(h/2, w / label.length());
-            paint.setTextSize(s*1.3f);
-            paint.setColor(Color.rgb(52, 57, 59));
-            canvas.drawText(label, x + 0.13f * w, y + .5f * (h + s), paint);
-        }
-
-        void drawRect(Canvas canvas,int tx,int ty) { drawRect(canvas, tx, ty, 0, 0, 20); }
-
-        void drawRect(Canvas canvas,int tx,int ty,int ex, int ey, int r)
-        {
-            canvas.drawRoundRect(x+tx+ex,y+ty+ey,tx-ex+x+w,ty-ey+y+h,r,r,paint);
-        }
 
     }
 
