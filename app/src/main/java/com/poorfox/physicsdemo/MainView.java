@@ -2,39 +2,34 @@ package com.poorfox.physicsdemo;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.os.Build;
-import android.util.DisplayMetrics;
 import android.view.View;
-import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
+import org.jbox2d.dynamics.Body;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static com.poorfox.physicsdemo.InputListener.CAPTURE_PINCH;
+import static com.poorfox.physicsdemo.Pinch.inverse;
+import static com.poorfox.physicsdemo.Pinch.mul;
+import static com.poorfox.physicsdemo.Pinch.rotate;
 
 public class MainView extends View
 {
     boolean firstTime;
     int width, height;
     Matrix cameraMatrix;
-    Matrix lastMatrix;
-    int lastFingers;
     Timer timer;
     Matrix deviceMatrix;
     MainWorld mainWorld;
     InputListener inputListener;
     GravitySensor gravitySensor;
     SensorManager sensorManager;
+    ControlPanel controlPanel;
     MainActivity mainActivity;
-    List<String> log;
     Timing timing;
 
     public MainView(Context context)
@@ -42,11 +37,11 @@ public class MainView extends View
         super(context);
         mainActivity = (MainActivity) context;
         gravitySensor = new GravitySensor();
-        log = new ArrayList<>();
         timing = new Timing();
         cameraMatrix = new Matrix();
         deviceMatrix = new Matrix();
         firstTime = true;
+        controlPanel = new ControlPanel();
     }
 
     private void startWorldSimulation()
@@ -60,7 +55,7 @@ public class MainView extends View
                 timing.startSim();
                 mainWorld.step(dt);
                 Vec2 grav = new Vec2(gravitySensor.gy, -gravitySensor.gx);
-                float r = Transform.getAngleFromMatrix(cameraMatrix);
+                float r = Pinch.getAngleFromMatrix(cameraMatrix);
                 grav = rotate(grav, r);
                 mainWorld.world.setGravity(grav);
                 timing.start();
@@ -76,18 +71,17 @@ public class MainView extends View
         height = getHeight();
 
         mainWorld = new MainWorld(10, 5); // 10* height / width);
-        inputListener = new InputListener();
+        inputListener = new InputListener(this);
         setOnTouchListener(inputListener);
-        inputListener.enableDebug(this);
 
         // Scale the camera to width 10, with origin in LOWER left
         float scale = height / 10;   // pixels per meter
         cameraMatrix.setRotate(90);
         cameraMatrix.preScale(scale, -scale);
+        Widget.u = height / 288;
+        controlPanel.initialize();
 
         // Translate the device origin to the TOP left
-        //deviceMatrix.setTranslate(0, 500);
-//        deviceMatrix.preRotate(90);
         deviceMatrix.setRotate(90);
         deviceMatrix.preTranslate(0, -width);
         startWorldSimulation();
@@ -99,56 +93,25 @@ public class MainView extends View
         super.onDraw(canvas);
         if (firstTime) initialize();
 
-        // ---- handle touches
-
-        int fingers = inputListener.isDown;
-
-        // At the end of the gesture, "burn" the input matrix into the camera matrix
-        if (lastFingers != fingers && lastMatrix != null)
-        {
-            cameraMatrix.postConcat(lastMatrix);
-        }
-
-        lastFingers = fingers;
-        if (inputListener.isDown == 1)
-        {
-            // This code is an experiment to map from device space to world space.
-            float[] pts = new float[2];
-            Vec2 t = inputListener.touch[0];
-            pts[0] = t.x;
-            pts[1] = t.y;
-            log.clear();
-            print("from " + pts[0] + ", " + pts[1]);
-            Matrix inv = new Matrix();
-            cameraMatrix.invert(inv);
-            inv.mapPoints(pts);
-            print("to   " + pts[0] + ", " + pts[1]);
-        }
-        //else
-        lastMatrix = inputListener.getTransform().getMatrix();
+        Matrix pinchMatrix = null;
+        if (inputListener.capture == CAPTURE_PINCH)
+            pinchMatrix = inputListener.getPinchMatrix();
 
         timing.startDraw();
 
         canvas.save();
-        canvas.setMatrix(lastMatrix);
+        canvas.setMatrix(pinchMatrix);
         canvas.concat(cameraMatrix);
         mainWorld.onDraw(canvas);
         canvas.restore();
 
         canvas.save();
         canvas.setMatrix(deviceMatrix);
-        drawWidgets(canvas);
-        drawLog(canvas);
+        controlPanel.onDraw(canvas);
         canvas.restore();
         timing.start();
     }
 
-    public static Vec2 rotate(Vec2 v, float radians)
-    {
-        float c = MathUtils.cos(radians);
-        float s = MathUtils.sin(radians);
-        return new Vec2(c * v.x - s * v.y, s * v.x + c * v.y);
-    }
 
     public void onPause()
     {
@@ -166,37 +129,38 @@ public class MainView extends View
 
     public void print(String s)
     {
-        log.add(s);
+        controlPanel.log.add(s);
     }
-
-    private void drawLog(Canvas canvas)
+    public void printTop(String s)
     {
-        Paint paint = new Paint();
-        paint.setColor(0xFF80FF80);
-        float f = 60;
-        paint.setTextSize(f);
-        float i = f * 6;
-        for (String s : log)
-        {
-            canvas.drawText(s, f * 5, i, paint);
-            i += f;
-        }
-        if (log.size() > 30) log.clear();
+        controlPanel.log.clear();
+        print(s);
     }
 
-    private void drawWidgets(Canvas canvas)
+    public Widget findWidget(float x, float y)
     {
-        Paint paint = new Paint();
-        paint.setColor(0xFF80FF80);
-        for (int i = 0; i < height; i += 200)
-        {
-            canvas.drawLine(0, i, height, i, paint);
-            canvas.drawLine(i, 0, i, width, paint);
-        }
-
-        Widget edit = new Widget(19, 19, "MODE");
-        edit.onDraw(canvas);
-
+        // Caution, this is doing an implicit inverse of the deviceMatrix
+        return controlPanel.findWidget((int)y,width - (int)x);
     }
 
+    public Body findBody(float x, float y)
+    {
+        Vec2 pos = mul(inverse(cameraMatrix), new Vec2(x,y));
+        return mainWorld.findBody(pos);
+    }
+
+    public void onReleaseBody(Body body)
+    {
+        print("release body");
+    }
+
+    public void onReleaseWidget(Widget widget)
+    {
+        print("release widget");
+    }
+
+    public void onEndPinch(Pinch pinch)
+    {
+        cameraMatrix.postConcat(pinch.getMatrix());
+    }
 }

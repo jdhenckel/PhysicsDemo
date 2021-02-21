@@ -40,4 +40,11 @@ public class MainWorld {
         }
     }
 
+    public Body findBody(Vec2 pos)
+    {
+        for (Body b = world.getBodyList(); b != null; b = b.getNext()){
+            if (b.getFixtureList().testPoint(pos)) return b;
+        }
+        return null;
+    }
 }

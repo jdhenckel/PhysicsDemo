@@ -4,21 +4,23 @@ import android.graphics.Matrix;
 import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 
-public class Transform
+public class Pinch
 {
     Vec2 translation;
     Vec2 center;
     float rotation;
     float scale;
 
-    Transform(float scale)
+    private static float[] temp = new float[9];
+
+    Pinch(float scale)
     {
         translation = new Vec2();
         center = new Vec2();
         this.scale = scale;
     }
 
-    Transform(Vec2 translation, Vec2 center, float rotation, float scale)
+    Pinch(Vec2 translation, Vec2 center, float rotation, float scale)
     {
         this.translation = translation;
         this.center = center;
@@ -44,27 +46,46 @@ public class Transform
 
     public static float getAngleFromMatrix(Matrix matrix)
     {
-        float[] m = new float[9];
-        matrix.getValues(m);
-        float c = m[0] + m[4];
-        float s = m[3] - m[1];
+        matrix.getValues(temp);
+        float c = temp[0] + temp[4];
+        float s = temp[3] - temp[1];
         return MathUtils.atan2(s,c);
     }
 
     public static float getScaleFromMatrix(Matrix matrix)
     {
-        float[] m = new float[9];
-        matrix.getValues(m);
-        return 0.5f * (MathUtils.sqrt(m[0]*m[0] + m[1]*m[1]) + MathUtils.sqrt(m[3]*m[3] + m[4]*m[4]));
+        matrix.getValues(temp);
+        return 0.5f * (MathUtils.sqrt(temp[0]*temp[0] + temp[1]*temp[1]) + MathUtils.sqrt(temp[3]*temp[3] + temp[4]*temp[4]));
     }
 
     public static Vec2 getTranslationFromMatrix(Matrix matrix)
     {
-        float[] m = new float[9];
-        matrix.getValues(m);
-        return new Vec2(m[2], m[5]);
+        matrix.getValues(temp);
+        return new Vec2(temp[2], temp[5]);
     }
 
+
+    public static Matrix inverse(Matrix m)
+    {
+        Matrix i = new Matrix();
+        m.invert(i);
+        return i;
+    }
+
+    public static Vec2 mul(Matrix m, Vec2 v)
+    {
+        m.getValues(temp);
+        return new Vec2(temp[0]*v.x + temp[1]*v.y + temp[2],
+                temp[3]*v.x + temp[4]*v.y + temp[5]);
+    }
+
+
+    public static Vec2 rotate(Vec2 v, float radians)
+    {
+        float c = MathUtils.cos(radians);
+        float s = MathUtils.sin(radians);
+        return new Vec2(c * v.x - s * v.y, s * v.x + c * v.y);
+    }
 
 
     @Override
