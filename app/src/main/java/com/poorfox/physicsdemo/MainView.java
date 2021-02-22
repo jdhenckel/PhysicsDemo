@@ -15,7 +15,6 @@ import java.util.TimerTask;
 import static com.poorfox.physicsdemo.InputListener.CAPTURE_PINCH;
 import static com.poorfox.physicsdemo.Pinch.inverse;
 import static com.poorfox.physicsdemo.Pinch.mul;
-import static com.poorfox.physicsdemo.Pinch.rotate;
 
 public class MainView extends View
 {
@@ -31,6 +30,7 @@ public class MainView extends View
     ControlPanel controlPanel;
     MainActivity mainActivity;
     Timing timing;
+    boolean backgroundSim;
 
     public MainView(Context context)
     {
@@ -42,23 +42,18 @@ public class MainView extends View
         deviceMatrix = new Matrix();
         firstTime = true;
         controlPanel = new ControlPanel();
+        mainWorld = new MainWorld();
     }
 
     private void startWorldSimulation()
     {
         final float dt = 1 / 60.f;
         timer = new Timer("physics update");
-        timer.scheduleAtFixedRate(new TimerTask()
+        timer.schedule(new TimerTask()  // AtFixedRate
         {
             public void run()
             {
-                timing.startSim();
-                mainWorld.step(dt);
-                Vec2 grav = new Vec2(gravitySensor.gy, -gravitySensor.gx);
-                float r = Pinch.getAngleFromMatrix(cameraMatrix);
-                grav = rotate(grav, r);
-                mainWorld.world.setGravity(grav);
-                timing.start();
+                if (backgroundSim) worldStep();
                 invalidate();
             }
         }, 0, (long) (dt * 1000));
@@ -68,9 +63,9 @@ public class MainView extends View
     {
         firstTime = false;
         width = getWidth();
-        height = getHeight();
+        height = getHeight();        //  view is rotated 90 deg, so the "height" is actually the width.
 
-        mainWorld = new MainWorld(10, 5); // 10* height / width);
+        mainWorld.initialize(10, 7);
         inputListener = new InputListener(this);
         setOnTouchListener(inputListener);
 
@@ -78,8 +73,7 @@ public class MainView extends View
         float scale = height / 10;   // pixels per meter
         cameraMatrix.setRotate(90);
         cameraMatrix.preScale(scale, -scale);
-        Widget.u = height / 288;
-        controlPanel.initialize();
+        controlPanel.initialize(height);
 
         // Translate the device origin to the TOP left
         deviceMatrix.setRotate(90);
@@ -93,11 +87,12 @@ public class MainView extends View
         super.onDraw(canvas);
         if (firstTime) initialize();
 
+        if (!backgroundSim) worldStep();
+
         Matrix pinchMatrix = null;
         if (inputListener.capture == CAPTURE_PINCH)
             pinchMatrix = inputListener.getPinchMatrix();
 
-        timing.startDraw();
 
         canvas.save();
         canvas.setMatrix(pinchMatrix);
@@ -105,13 +100,23 @@ public class MainView extends View
         mainWorld.onDraw(canvas);
         canvas.restore();
 
+        timing.startDraw();
         canvas.save();
         canvas.setMatrix(deviceMatrix);
         controlPanel.onDraw(canvas);
         canvas.restore();
-        timing.start();
+
+        timing.stopDraw();
+        controlPanel.drawTiming(canvas, timing);
     }
 
+
+    void worldStep()
+    {
+        timing.startSim();
+        mainWorld.step(1 / 60.f);
+        timing.stopSim();
+    }
 
     public void onPause()
     {
@@ -157,6 +162,10 @@ public class MainView extends View
     public void onReleaseWidget(Widget widget)
     {
         print("release widget");
+        if (widget.label.equalsIgnoreCase("play"))
+            mainWorld.isRunning = !mainWorld.isRunning;
+        if (widget.label.equalsIgnoreCase("mode"))
+            controlPanel.mode = (controlPanel.mode % 3) + 1;
     }
 
     public void onEndPinch(Pinch pinch)

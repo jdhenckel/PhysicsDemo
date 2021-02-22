@@ -67,7 +67,7 @@ public class InputListener implements View.OnTouchListener
             if (capture == CAPTURE_WIDGET) mainView.onReleaseWidget(widget);
             capture = 0;
         }
-        mainView.printTop("Capture " + capture);
+        //mainView.printTop("Capture " + capture);
 
         return true;
     }
