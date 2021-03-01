@@ -20,7 +20,7 @@ public class InputListener implements View.OnTouchListener
     Widget widget;
     Body body;
 
-    static final int CAPTURE_PINCH = 1;
+    static final int CAPTURE_BACKGROUND = 1;
     static final int CAPTURE_WIDGET = 2;
     static final int CAPTURE_BODY = 3;
 
@@ -45,7 +45,7 @@ public class InputListener implements View.OnTouchListener
             widget = mainView.findWidget(event.getX(0), event.getY(0));
             if (widget == null && mainView.controlPanel.mode != MODE_VIEW)
                 body = mainView.findBody(event.getX(0), event.getY(0));
-            capture = (widget!=null) ? CAPTURE_WIDGET : (body!=null) ? CAPTURE_BODY : CAPTURE_PINCH;
+            capture = (widget!=null) ? CAPTURE_WIDGET : (body!=null) ? CAPTURE_BODY : CAPTURE_BACKGROUND;
         }
         int wasDown = isDown;
         isDown = 0;
@@ -54,8 +54,8 @@ public class InputListener implements View.OnTouchListener
                 setTouch(event.getPointerId(i), event.getX(i), event.getY(i));
         if (isDown != wasDown)
         {
-            if (capture == CAPTURE_PINCH && pinch != null)
-                mainView.onEndPinch(pinch);
+            if (capture == CAPTURE_BACKGROUND && pinch != null)
+                mainView.onEndBackgroundPinch(pinch);
             startPinch();
         }
         else if (isDown != 0)
@@ -123,6 +123,11 @@ public class InputListener implements View.OnTouchListener
     Matrix getPinchMatrix()
     {
         return pinch == null ? null : pinch.getMatrix();
+    }
+
+    Matrix getBackgroundPinchMatrix()
+    {
+        return pinch == null || capture != CAPTURE_BACKGROUND ? null : pinch.getMatrix();
     }
 
 }

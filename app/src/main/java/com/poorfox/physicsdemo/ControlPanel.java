@@ -32,11 +32,11 @@ public class ControlPanel
     {
         int u = width / 200;
         Widget.u = u;
-        widgetList.add(new Widget(u,u,"PLAY"));
+        widgetList.add(Widget.createButton(u,u,"PLAY"));
         int w = widgetList.get(0).rect.right;
-        widgetList.add(new Widget(width-w-u,u,"MODE"));
-        widgetList.add(new Widget(width-w-u,u+w,"Z+"));
-        widgetList.add(new Widget(width-w-u,u+2*w,"Z-"));
+        widgetList.add(Widget.createButton(width-w-u,u,"MODE"));
+        widgetList.add(Widget.createButton(width-w-u,u+w,"Z+"));
+        widgetList.add(Widget.createButton(width-w-u,u+2*w,"Z-"));
     }
 
     void onDraw(Canvas canvas)

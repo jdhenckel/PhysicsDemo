@@ -1,5 +1,6 @@
 package com.poorfox.physicsdemo;
 
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Bundle;
@@ -70,29 +71,43 @@ TODO:   x = do it now
  */
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+{
 
+    MainWorld mainWorld;
+    GravitySensor gravitySensor;
+    SensorManager sensorManager;
     MainView view;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         view = new MainView(this);
+        mainWorld = new MainWorld();
+        mainWorld.initialize(10, 7);
+
+        gravitySensor = new GravitySensor();
         setContentView(view);
     }
 
 
     @Override
-    protected void onResume() {
+    protected void onResume()
+    {
         super.onResume();
-        view.onResume();
+        if (sensorManager == null)
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        if (sensor != null)
+            sensorManager.registerListener(gravitySensor, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
-    protected void onPause() {
+    protected void onPause()
+    {
         super.onPause();
-        view.onPause();
+        sensorManager.unregisterListener(gravitySensor);
     }
-
 
 }
