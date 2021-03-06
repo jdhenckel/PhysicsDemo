@@ -4,12 +4,16 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.view.View;
+import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
+import org.jbox2d.dynamics.BodyType;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
+import static com.poorfox.physicsdemo.InputListener.CAPTURE_BODY;
 import static com.poorfox.physicsdemo.Pinch.inverse;
 import static com.poorfox.physicsdemo.Pinch.mul;
 
@@ -43,6 +47,7 @@ public class MainView extends View
         this.fps = fps;
         if (timer == null) timer = new Timer("mainView.timer");
         else timer.cancel();
+        if (fps <= 0) return;
         timer.scheduleAtFixedRate(new TimerTask()
         {
             public void run()
@@ -50,6 +55,11 @@ public class MainView extends View
                 invalidate();
             }
         }, 0, 1000 / fps);
+    }
+
+    void stopAnimation()
+    {
+        startAnimation(0);
     }
 
     private void initialize()
@@ -79,6 +89,9 @@ public class MainView extends View
     {
         super.onDraw(canvas);
         if (firstTime) initialize();
+        float scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        if (controlPanel.mode == MODE_GRAB)
+            inputListener.applyGrabForce();
 
         worldStep();
 
@@ -86,6 +99,7 @@ public class MainView extends View
         canvas.setMatrix(inputListener.getBackgroundPinchMatrix());
         canvas.concat(cameraMatrix);
         mainWorld.onDraw(canvas);
+        controlPanel.drawDebugLines(canvas, 5/scale);
         canvas.restore();
 
         timing.startDraw();
@@ -96,7 +110,6 @@ public class MainView extends View
         timing.stopDraw();
         controlPanel.drawTiming(canvas, timing);
     }
-
 
     void worldStep()
     {
@@ -117,34 +130,70 @@ public class MainView extends View
         print(s);
     }
 
-    public Widget findWidget(float x, float y)
+    Vec2 toDevice(Vec2 v)
     {
-        // Caution, this is doing an implicit inverse of the deviceMatrix
-        return controlPanel.findWidget((int) y, width - (int) x);
+        // implicit inverse of the deviceMatrix
+        return  new Vec2((int) v.y, width - (int) v.x);
     }
 
-    public Body findBody(float x, float y)
+    Vec2 toWorld(Vec2 v)
     {
-        Vec2 pos = mul(inverse(cameraMatrix), new Vec2(x, y));
-        return mainWorld.findBody(pos);
+        return mul(inverse(cameraMatrix), v);
+    }
+
+    Vec2 toBody(Body body, Vec2 v)
+    {
+        Vec2 w = toWorld(v).subLocal(body.getPosition());
+        return Pinch.rotate(w, -body.getAngle());
+    }
+
+    public Widget findWidget(Vec2 v)
+    {
+        return controlPanel.findWidget(toDevice(v));
+    }
+
+    public Body findBody(Vec2 v)
+    {
+        return mainWorld.findBody(toWorld(v));
     }
 
     public void onReleaseBody(Body body)
     {
+        body.setLinearDamping(0);
+        body.setAngularDamping(0);
         print("release body");
     }
 
+
     public void onReleaseWidget(Widget widget)
     {
-        print("release widget");
-        if (widget.label.equalsIgnoreCase("play"))
-            mainWorld.isRunning = !mainWorld.isRunning;
-        if (widget.label.equalsIgnoreCase("mode"))
-            controlPanel.mode = (controlPanel.mode % 3) + 1;
+        widget.onTouchEnd();
+        if (widget.name.toLowerCase().startsWith("play")) {
+            mainWorld.isRunning = widget.mode == 0;
+            mainWorld.singleStep = widget.mode == 1;
+        }
+        if (widget.name.toLowerCase().startsWith("view"))
+            controlPanel.mode = widget.mode;
     }
 
     public void onEndBackgroundPinch(Pinch pinch)
     {
         cameraMatrix.postConcat(pinch.getMatrix());
+    }
+
+    // Adds a line in World space
+    public void addDebugLine(Vec2 p1, Vec2 p2)
+    {
+        controlPanel.addDebugPoint(p1);
+        controlPanel.addDebugPoint(p2);
+    }
+
+    public boolean onGrab(Body body)
+    {
+        if (body.getType() != BodyType.DYNAMIC)
+            return false;
+        body.setLinearDamping(10.f);    //  ????? 
+        body.setAngularDamping(10.f);
+        return true;
     }
 }

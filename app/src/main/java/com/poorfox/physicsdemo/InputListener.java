@@ -3,6 +3,7 @@ package com.poorfox.physicsdemo;
 import android.graphics.Matrix;
 import android.view.MotionEvent;
 import android.view.View;
+import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 
@@ -19,6 +20,7 @@ public class InputListener implements View.OnTouchListener
     int capture;     // 0=none, 1=background, 2=widget, 3=body
     Widget widget;
     Body body;
+    Vec2 bodyGrab;
 
     static final int CAPTURE_BACKGROUND = 1;
     static final int CAPTURE_WIDGET = 2;
@@ -41,11 +43,20 @@ public class InputListener implements View.OnTouchListener
         int action = event.getActionMasked();
         if (capture==0 && action == MotionEvent.ACTION_DOWN && event.getPointerCount() == 1)
         {
+            capture = CAPTURE_BACKGROUND;
             body = null;
-            widget = mainView.findWidget(event.getX(0), event.getY(0));
-            if (widget == null && mainView.controlPanel.mode != MODE_VIEW)
-                body = mainView.findBody(event.getX(0), event.getY(0));
-            capture = (widget!=null) ? CAPTURE_WIDGET : (body!=null) ? CAPTURE_BODY : CAPTURE_BACKGROUND;
+            Vec2 pos = new Vec2(event.getX(0), event.getY(0));
+            widget = mainView.findWidget(pos);
+            if (widget != null && widget.onTouchBegin())
+                capture = CAPTURE_WIDGET;
+            else if (mainView.controlPanel.mode != MODE_VIEW){
+                body = mainView.findBody(pos);
+                if (body != null && mainView.onGrab(body))
+                {
+                    capture = CAPTURE_BODY;
+                    bodyGrab = mainView.toBody(body, pos);
+                }
+            }
         }
         int wasDown = isDown;
         isDown = 0;
@@ -67,7 +78,9 @@ public class InputListener implements View.OnTouchListener
             if (capture == CAPTURE_WIDGET) mainView.onReleaseWidget(widget);
             capture = 0;
         }
-        //mainView.printTop("Capture " + capture);
+        else if (capture == CAPTURE_WIDGET && (wasDown &1)==1) {
+            widget.onTouchMove(isDown,mainView.toDevice(touch[0]));
+        }
 
         return true;
     }
@@ -108,11 +121,7 @@ public class InputListener implements View.OnTouchListener
 
             if (alen > 0 && blen > 0)
             {
-                float sg = Vec2.cross(a, b);
-                float cc = Vec2.dot(a, b) / (alen * blen);
-                float ac = cc >= 1 ? 0 : (float) Math.acos(cc);  // TODO - use mathutils ATAN2
-                float theta = sg < 0 ? -ac : ac;
-                pinch.rotation = theta;
+                pinch.rotation = Pinch.angleFrom(a,b);
                 pinch.scale = blen / alen;
             }
             return pinch;
@@ -127,7 +136,15 @@ public class InputListener implements View.OnTouchListener
 
     Matrix getBackgroundPinchMatrix()
     {
-        return pinch == null || capture != CAPTURE_BACKGROUND ? null : pinch.getMatrix();
+        return capture != CAPTURE_BACKGROUND ? null : getPinchMatrix();
     }
 
+    public void applyGrabForce()
+    {
+        if (capture != CAPTURE_BODY || body == null) return;
+        Vec2 pos = Pinch.rotate(bodyGrab, body.getAngle()).addLocal(body.getPosition());
+        Vec2 f = mainView.toWorld(touch[0]).subLocal(pos);
+        body.applyForce(f.mul(body.getMass() * 40), pos);
+        mainView.addDebugLine(pos, f.addLocal(pos));
+    }
 }

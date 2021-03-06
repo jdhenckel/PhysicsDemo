@@ -28,6 +28,12 @@ public class Pinch
         this.scale = scale;
     }
 
+    // return angle in radians from a to b
+    public static float angleFrom(Vec2 a, Vec2 b)
+    {
+        return MathUtils.atan2(Vec2.cross(a, b), Vec2.dot(a, b));
+    }
+
     float getDegrees()
     {
         return rotation * 57.2957795131f;

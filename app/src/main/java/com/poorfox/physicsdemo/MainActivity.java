@@ -107,7 +107,8 @@ public class MainActivity extends AppCompatActivity
     protected void onPause()
     {
         super.onPause();
-        sensorManager.unregisterListener(gravitySensor);
+        if (sensorManager != null)
+            sensorManager.unregisterListener(gravitySensor);
     }
 
 }
