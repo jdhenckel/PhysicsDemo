@@ -12,6 +12,7 @@ import org.jbox2d.dynamics.BodyType;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.poorfox.physicsdemo.ControlPanel.MODE_DEL;
 import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
 import static com.poorfox.physicsdemo.InputListener.CAPTURE_BODY;
 import static com.poorfox.physicsdemo.Pinch.inverse;
@@ -29,6 +30,7 @@ public class MainView extends View
     MainActivity mainActivity;
     Timing timing;
     MainWorld mainWorld;
+    float scale;       // pixels per meter
 
     public MainView(Context context)
     {
@@ -39,6 +41,7 @@ public class MainView extends View
         deviceMatrix = new Matrix();
         firstTime = true;
         controlPanel = new ControlPanel();
+        scale = 200;
     }
 
 
@@ -73,7 +76,7 @@ public class MainView extends View
         setOnTouchListener(inputListener);
 
         // Scale the camera to width 10, with origin in LOWER left
-        int scale = height / 10;   // pixels per meter
+        scale = height / 10;   // pixels per meter
         cameraMatrix.setRotate(90);
         cameraMatrix.preScale(scale, -scale);
         controlPanel.initialize(height);
@@ -89,7 +92,7 @@ public class MainView extends View
     {
         super.onDraw(canvas);
         if (firstTime) initialize();
-        float scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        scale = Pinch.getScaleFromMatrix(cameraMatrix);
         if (controlPanel.mode == MODE_GRAB)
             inputListener.applyGrabForce();
 
@@ -98,8 +101,9 @@ public class MainView extends View
         canvas.save();
         canvas.setMatrix(inputListener.getBackgroundPinchMatrix());
         canvas.concat(cameraMatrix);
-        mainWorld.onDraw(canvas);
-        controlPanel.drawDebugLines(canvas, 5/scale);
+        mainWorld.onDraw(canvas, scale);
+        controlPanel.drawDebugLines(canvas, scale);
+        inputListener.drawHighlights(canvas);
         canvas.restore();
 
         timing.startDraw();
@@ -154,14 +158,15 @@ public class MainView extends View
 
     public Body findBody(Vec2 v)
     {
-        return mainWorld.findBody(toWorld(v));
+        return mainWorld.findBody(toWorld(v), scale);
     }
 
     public void onReleaseBody(Body body)
     {
         body.setLinearDamping(0);
         body.setAngularDamping(0);
-        print("release body");
+        if (controlPanel.mode == MODE_DEL)
+            mainWorld.world.destroyBody(body);
     }
 
 
@@ -188,12 +193,11 @@ public class MainView extends View
         controlPanel.addDebugPoint(p2);
     }
 
-    public boolean onGrab(Body body)
+    public void onGrab(Body body)
     {
-        if (body.getType() != BodyType.DYNAMIC)
-            return false;
-        body.setLinearDamping(10.f);    //  ????? 
+        if (body.getType() != BodyType.DYNAMIC || controlPanel.mode != MODE_GRAB)
+            return;
+        body.setLinearDamping(10.f);    //  ?????
         body.setAngularDamping(10.f);
-        return true;
     }
 }

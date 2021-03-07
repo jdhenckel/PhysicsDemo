@@ -9,6 +9,8 @@ import org.jbox2d.collision.shapes.Shape;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.Fixture;
+import org.jbox2d.dynamics.joints.Joint;
+import org.jbox2d.dynamics.joints.JointEdge;
 
 /**
  * The draws a body.  The "painter" is stored in the body.setUserData()
@@ -17,6 +19,18 @@ public class BodyPainter
 {
     Paint paint;
     Path path;
+    Joint selectedJoint;
+    static Paint jointPaint;
+    static Paint highlightPaint;
+
+    static  {
+        jointPaint = new Paint();
+        jointPaint.setStyle(Paint.Style.FILL);
+        jointPaint.setColor(0xFF404040);
+        highlightPaint = new Paint();
+        highlightPaint.setStyle(Paint.Style.STROKE);
+        highlightPaint.setColor(0xFFFFFF40);
+    }
 
     public BodyPainter(Body body)
     {
@@ -31,29 +45,67 @@ public class BodyPainter
         return Color.HSVToColor(255, new float[] { hue, 1, 1 });
     }
 
-    public void onDraw(Canvas canvas, Body body)
+    public void onDraw(Canvas canvas, Body body, float scale)
     {
+        Vec2 pos = body.getPosition();
+        Vec2 vel = body.getLinearVelocity();
+        float ang = body.getAngle();
+
         for (Fixture fix = body.getFixtureList(); fix != null; fix = fix.getNext())
         {
-            Shape shape = fix.getShape();
-            if (shape == null) continue;
-            Vec2 pos = body.getPosition();
-            Vec2 vel = body.getLinearVelocity();
-            float ang = body.getAngle();
+            drawShape(canvas,fix.getShape(),pos,ang, paint);
+        }
 
-            switch (shape.getType()) {
-            case CIRCLE:
-                canvas.drawCircle(pos.x, pos.y, shape.getRadius(), paint);
-                break;
-            case POLYGON:
-                if (path == null) path = createPath((PolygonShape)shape);
-                canvas.save();
-                canvas.translate(pos.x, pos.y);
-                canvas.rotate(toDegrees(ang));
-                canvas.drawPath(path, paint);
-                canvas.restore();
-                break;
-            }
+        // Note, assume all joints to background will set A=body and B=background
+        for (JointEdge j = body.getJointList(); j != null; j = j.next)
+        {
+            if (j.joint.getBodyA() == body)
+                drawJoint(canvas, j.joint, pos, ang, scale, jointPaint);
+        }
+    }
+
+    static void drawJoint(Canvas canvas, Joint joint, Vec2 pos, float ang, float scale, Paint paint)
+    {
+        Vec2 p = new Vec2();
+        joint.getAnchorA(p);
+        p = Pinch.rotate(p, ang).addLocal(pos);
+        canvas.drawCircle(p.x, p.y, 20 / scale, paint);
+    }
+
+    void drawShape(Canvas canvas, Shape shape, Vec2 pos, float ang, Paint paint){
+        if (shape == null) return;
+        switch (shape.getType()) {
+        case CIRCLE:
+            canvas.drawCircle(pos.x, pos.y, shape.getRadius(), paint);
+            break;
+        case POLYGON:
+            if (path == null) path = createPath((PolygonShape)shape);
+            canvas.save();
+            canvas.translate(pos.x, pos.y);
+            canvas.rotate(toDegrees(ang));
+            canvas.drawPath(path, paint);
+            canvas.restore();
+            break;
+        }
+    }
+
+    static void drawHighlights(Canvas canvas, Body body, float scale)
+    {
+        if (body==null) return;
+        BodyPainter bp = (BodyPainter) body.getUserData();
+
+        Vec2 pos = body.getPosition();
+        float ang = body.getAngle();
+        highlightPaint.setStrokeWidth(5/scale);
+
+        if (bp.selectedJoint == null)
+        {
+            for (Fixture fix = body.getFixtureList(); fix != null; fix = fix.getNext())
+                bp.drawShape(canvas, fix.getShape(), pos, ang, highlightPaint);
+        }
+        else
+        {
+            drawJoint(canvas, bp.selectedJoint, pos, ang, scale, highlightPaint);
         }
     }
 

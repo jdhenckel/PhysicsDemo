@@ -54,6 +54,7 @@ public class ControlPanel
 
     void drawLog(Canvas canvas)
     {
+        paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFF80FF80);
         float f = 60;
         paint.setTextSize(f);
@@ -68,6 +69,8 @@ public class ControlPanel
 
     void drawGrid(Canvas canvas)
     {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(1);
         paint.setColor(0xFF80FF80);
         int height = canvas.getHeight();
         int width = canvas.getHeight();
@@ -89,13 +92,13 @@ public class ControlPanel
         }
     }
 
-    void drawDebugLines(Canvas canvas, float width)
+    void drawDebugLines(Canvas canvas, float scale)
     {
         if (numDebugLines > 0)
         {
             paint.setColor(0xFFFFFF80);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(width);
+            paint.setStrokeWidth(5/scale);
             canvas.drawLines(debugLines, 0, numDebugLines, paint);
         }
         numDebugLines = 0;
@@ -105,7 +108,7 @@ public class ControlPanel
     // Call this twice to make a line
     public void addDebugPoint(Vec2 p)
     {
-        if (numDebugLines + 2 < debugLines.length) {
+        if (numDebugLines + 2 <= debugLines.length) {
             debugLines[numDebugLines++] = p.x;
             debugLines[numDebugLines++] = p.y;
         }

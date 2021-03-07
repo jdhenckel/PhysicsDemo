@@ -3,6 +3,7 @@ package com.poorfox.physicsdemo;
 import android.graphics.Canvas;
 import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
+import org.jbox2d.dynamics.joints.JointEdge;
 
 public class MainWorld {
 
@@ -42,19 +43,40 @@ public class MainWorld {
         }
     }
 
-    public void onDraw(Canvas canvas)
+    public void onDraw(Canvas canvas, float scale)
     {
         for (Body body = world.getBodyList(); body != null; body = body.getNext())
         {
             BodyPainter painter = (BodyPainter) body.getUserData();
-            painter.onDraw(canvas, body);
+            painter.onDraw(canvas, body, scale);
         }
     }
 
-    public Body findBody(Vec2 pos)
+    public Body findBody(Vec2 pos, float scale)
     {
-        for (Body b = world.getBodyList(); b != null; b = b.getNext()){
-            if (b.getFixtureList().testPoint(pos)) return b;
+        // TODO - optimize with spatial hash?
+        for (Body b = world.getBodyList(); b != null; b = b.getNext())
+        {
+            for (JointEdge j = b.getJointList(); j != null; j = j.next)
+            {
+                if (j.joint.getBodyA() != b) continue;
+                Vec2 p = new Vec2();
+                j.joint.getAnchorA(p);
+                p = Pinch.rotate(p, b.getAngle()).addLocal(b.getPosition());
+                if (MathUtils.distance(p, pos) < 20 / scale)
+                {
+                    ((BodyPainter) b.getUserData()).selectedJoint = j.joint;
+                    return b;
+                }
+            }
+        }
+        for (Body b = world.getBodyList(); b != null; b = b.getNext())
+        {
+            for (Fixture fix = b.getFixtureList(); fix != null; fix = fix.getNext())
+                if (fix.testPoint(pos)) {
+                    ((BodyPainter) b.getUserData()).selectedJoint = null;
+                    return b;
+                }
         }
         return null;
     }
