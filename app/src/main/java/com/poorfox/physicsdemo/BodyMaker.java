@@ -33,9 +33,9 @@ public class BodyMaker
         return this;
     }
 
-    public Body addTo(World world, float x, float y)
+    public Body addTo(World world, Vec2 pos)
     {
-        bodyDef.setPosition(new Vec2(x, y));
+        bodyDef.setPosition(pos);
         Body b = world.createBody(bodyDef);
         b.createFixture(fixtureDef);
         b.setUserData(new BodyPainter(b));

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.view.View;
-import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.BodyType;
@@ -14,7 +13,6 @@ import java.util.TimerTask;
 
 import static com.poorfox.physicsdemo.ControlPanel.MODE_DEL;
 import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
-import static com.poorfox.physicsdemo.InputListener.CAPTURE_BODY;
 import static com.poorfox.physicsdemo.Pinch.inverse;
 import static com.poorfox.physicsdemo.Pinch.mul;
 
@@ -93,8 +91,7 @@ public class MainView extends View
         super.onDraw(canvas);
         if (firstTime) initialize();
         scale = Pinch.getScaleFromMatrix(cameraMatrix);
-        if (controlPanel.mode == MODE_GRAB)
-            inputListener.applyGrabForce();
+        inputListener.applyGrabForce();
 
         worldStep();
 
@@ -151,7 +148,7 @@ public class MainView extends View
         return Pinch.rotate(w, -body.getAngle());
     }
 
-    public Widget findWidget(Vec2 v)
+    public Knob findWidget(Vec2 v)
     {
         return controlPanel.findWidget(toDevice(v));
     }
@@ -170,15 +167,16 @@ public class MainView extends View
     }
 
 
-    public void onReleaseWidget(Widget widget)
+    public void onReleaseWidget(Knob knob)
     {
-        widget.onTouchEnd();
-        if (widget.name.toLowerCase().startsWith("play")) {
-            mainWorld.isRunning = widget.mode == 0;
-            mainWorld.singleStep = widget.mode == 1;
+        knob.onTouchEnd();
+        String name = knob.name.toLowerCase();
+        if (name.startsWith("pause")) {
+            mainWorld.isRunning = knob.mode == 0;
+            mainWorld.singleStep = knob.mode == 1;
         }
-        if (widget.name.toLowerCase().startsWith("view"))
-            controlPanel.mode = widget.mode;
+        if (name.startsWith("view"))
+            controlPanel.mode = knob.mode;
     }
 
     public void onEndBackgroundPinch(Pinch pinch)
@@ -195,9 +193,22 @@ public class MainView extends View
 
     public void onGrab(Body body)
     {
-        if (body.getType() != BodyType.DYNAMIC || controlPanel.mode != MODE_GRAB)
+        if (body.getType() != BodyType.DYNAMIC) // || controlPanel.mode != MODE_GRAB)
             return;
         body.setLinearDamping(10.f);    //  ?????
         body.setAngularDamping(10.f);
+    }
+
+    public Body addBody(Vec2 pos)
+    {
+        float r = 100/scale;
+        BodyMaker m = BodyMaker.create();
+        switch (controlPanel.get("shape").mode){
+        case 0: m.ball(r); break;
+        case 1: m.box(2*r,r); break;
+        //case 2: m.joint(); break;
+        }
+        m.layer(controlPanel.get("layer").value);
+        return m.addTo(mainWorld.world, pos);
     }
 }

@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import org.jbox2d.common.Vec2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /*
@@ -13,7 +14,7 @@ This class manages all the stuff on the screen that is NOT part of the world
  */
 public class ControlPanel
 {
-    List<Widget> widgetList;
+    HashMap<String, Knob> widgetList;
     List<String> log;
     Paint paint;
     int mode;
@@ -27,7 +28,7 @@ public class ControlPanel
 
     ControlPanel()
     {
-        widgetList = new ArrayList<>();
+        widgetList = new HashMap<>();
         log = new ArrayList<>();
         paint = new Paint();
         debugLines = new float[100];
@@ -36,12 +37,16 @@ public class ControlPanel
     void initialize(int width)
     {
         int u = width / 200;
-        Widget.u = u;
-        widgetList.add(Widget.createButton(u, u, "PLAY/STEP"));
-        int w = widgetList.get(0).rect.right;
-        widgetList.add(Widget.createButton(width - w - u, u, "VIEW/ADD/GRAB/DEL"));
-        widgetList.add(Widget.createButton(width - w - u, u + w, "JOIN/BALL/BOX"));
-        widgetList.add(Widget.createButton(width - w - u, u + 2*w, "LAYER+v"));
+        Knob.u = u;
+        widgetList.put("play", new Knob(u, u, "pause/play"));
+        int w = widgetList.get("play").rect.right;
+        widgetList.put("mode", new Knob(width - w - u, u, "VIEW/ADD/GRAB/DEL"));
+        widgetList.put("shape", new Knob(width - w - u, u + w, "BALL/BOX/JOIN"));
+        widgetList.put("layer", new Knob(width - w - u, u + 2*w, "LAYER+b"));
+    }
+
+    Knob get(String s) {
+        return widgetList.containsKey(s)?widgetList.get(s):null;
     }
 
     void onDraw(Canvas canvas)
@@ -84,7 +89,7 @@ public class ControlPanel
     void drawWidgets(Canvas canvas)
     {
         int i = 0;
-        for (Widget w : widgetList)
+        for (Knob w : widgetList.values())
         {
             w.onDraw(canvas);
             ++i;
@@ -115,9 +120,9 @@ public class ControlPanel
     }
 
 
-    Widget findWidget(Vec2 v)
+    Knob findWidget(Vec2 v)
     {
-        for (Widget w : widgetList)
+        for (Knob w : widgetList.values())
             if (w.rect.contains((int)v.x, (int)v.y)) return w;
         return null;
     }

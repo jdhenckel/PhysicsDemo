@@ -4,12 +4,12 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.view.MotionEvent;
 import android.view.View;
-import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 
+import static com.poorfox.physicsdemo.ControlPanel.MODE_ADD;
 import static com.poorfox.physicsdemo.ControlPanel.MODE_DEL;
-import static com.poorfox.physicsdemo.ControlPanel.MODE_VIEW;
+import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
 
 public class InputListener implements View.OnTouchListener
 
@@ -20,7 +20,7 @@ public class InputListener implements View.OnTouchListener
     Vec2[] firstTouch;
     Pinch pinch;
     int capture;     // 0=none, 1=background, 2=widget, 3=body
-    Widget widget;
+    Knob knob;
     Body body;
     Vec2 bodyGrab;
 
@@ -43,6 +43,7 @@ public class InputListener implements View.OnTouchListener
         // A touch can be captured by one of: background, widget, or body
 
         int action = event.getActionMasked();
+        int mode = mainView.controlPanel.mode;
         /*-----------------------------------------
            BEGIN TOUCH
          */
@@ -51,10 +52,10 @@ public class InputListener implements View.OnTouchListener
             capture = CAPTURE_BACKGROUND;
             body = null;
             Vec2 pos = new Vec2(event.getX(0), event.getY(0));
-            widget = mainView.findWidget(pos);
-            if (widget != null && widget.onTouchBegin())
+            knob = mainView.findWidget(pos);
+            if (knob != null && knob.onTouchBegin())
                 capture = CAPTURE_WIDGET;
-            else if (mainView.controlPanel.mode != MODE_VIEW){
+            else if (mode == MODE_DEL||mode==MODE_GRAB){
                 body = mainView.findBody(pos);
                 if (body != null)
                 {
@@ -62,6 +63,12 @@ public class InputListener implements View.OnTouchListener
                     bodyGrab = mainView.toBody(body, pos);
                     mainView.onGrab(body);
                 }
+            }
+            else if (mode == MODE_ADD){
+                body = mainView.addBody(mainView.toWorld(pos));
+                capture = CAPTURE_BODY;
+                bodyGrab = new Vec2();
+                mainView.onGrab(body);
             }
         }
         int wasDown = isDown;
@@ -85,8 +92,9 @@ public class InputListener implements View.OnTouchListener
         {
             if (capture == CAPTURE_BODY && body != null)
                 mainView.onReleaseBody(body);
-            if (capture == CAPTURE_WIDGET && widget != null)
-                mainView.onReleaseWidget(widget);
+            if (capture == CAPTURE_WIDGET && knob != null)
+                mainView.onReleaseWidget(knob);
+            //if (capture == CAPTURE_BACKGROUND)  mainView.onRelease???;
             capture = 0;
         }
         /*-----------------------------------------
@@ -94,7 +102,7 @@ public class InputListener implements View.OnTouchListener
          */
         else {
             if (capture == CAPTURE_WIDGET && (wasDown &1)==1) {
-                widget.onTouchMove(isDown,mainView.toDevice(touch[0]));
+                knob.onTouchMove(isDown,mainView.toDevice(touch[0]));
             }
             if (capture == CAPTURE_BODY && mainView.controlPanel.mode == MODE_DEL){
                 body = mainView.findBody(touch[0]);
