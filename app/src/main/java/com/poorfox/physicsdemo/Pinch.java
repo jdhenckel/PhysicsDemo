@@ -60,8 +60,11 @@ public class Pinch
 
     public static float getScaleFromMatrix(Matrix matrix)
     {
+        // return average of the abs values of scaleX and scaleY
         matrix.getValues(temp);
-        return 0.5f * (MathUtils.sqrt(temp[0]*temp[0] + temp[1]*temp[1]) + MathUtils.sqrt(temp[3]*temp[3] + temp[4]*temp[4]));
+        float a = MathUtils.sqrt(temp[0]*temp[0] + temp[1]*temp[1]);
+        float b = MathUtils.sqrt(temp[3]*temp[3] + temp[4]*temp[4]);
+        return 0.5f * (a + b);
     }
 
     public static Vec2 getTranslationFromMatrix(Matrix matrix)

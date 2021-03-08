@@ -90,7 +90,7 @@ public class MainView extends View
     {
         super.onDraw(canvas);
         if (firstTime) initialize();
-        scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        adjustScale();
         inputListener.applyGrabForce();
 
         worldStep();
@@ -119,6 +119,18 @@ public class MainView extends View
         timing.stopSim();
     }
 
+    void adjustScale(){
+        scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        float meters = height / scale;
+        float rate = 0.2f;
+        float ds;
+        if (meters < 0.1f) ds = meters / (meters + rate * (0.11f - meters));
+        else if (meters > 1000.f) ds = meters / (meters - rate * (meters - 900.f));
+        else return;
+        Vec2 c = toWorld(new Vec2(width/2, height/2));
+        cameraMatrix.preScale(ds,ds,c.x,c.y);
+        scale = Pinch.getScaleFromMatrix(cameraMatrix);
+    }
 
     public void print(String s)
     {
