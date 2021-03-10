@@ -19,13 +19,13 @@ public class InputListener implements View.OnTouchListener
     int isDown;
     Vec2[] firstTouch;
     Pinch pinch;
-    int capture;     // 0=none, 1=background, 2=widget, 3=body
+    int capture;     // 0=none, 1=background, 2=knob, 3=body
     Knob knob;
     Body body;
     Vec2 bodyGrab;
 
     static final int CAPTURE_BACKGROUND = 1;
-    static final int CAPTURE_WIDGET = 2;
+    static final int CAPTURE_KNOB = 2;
     static final int CAPTURE_BODY = 3;
 
     public InputListener(MainView mainView)
@@ -40,7 +40,7 @@ public class InputListener implements View.OnTouchListener
     @Override
     public boolean onTouch(View v, MotionEvent event)
     {
-        // A touch can be captured by one of: background, widget, or body
+        // A touch can be captured by one of: background, knob, or body
 
         int action = event.getActionMasked();
         int mode = mainView.controlPanel.mode;
@@ -52,9 +52,9 @@ public class InputListener implements View.OnTouchListener
             capture = CAPTURE_BACKGROUND;
             body = null;
             Vec2 pos = new Vec2(event.getX(0), event.getY(0));
-            knob = mainView.findWidget(pos);
+            knob = mainView.findKnob(pos);
             if (knob != null && knob.onTouchBegin())
-                capture = CAPTURE_WIDGET;
+                capture = CAPTURE_KNOB;
             else if (mode == MODE_DEL||mode==MODE_GRAB){
                 body = mainView.findBody(pos);
                 if (body != null)
@@ -92,8 +92,8 @@ public class InputListener implements View.OnTouchListener
         {
             if (capture == CAPTURE_BODY && body != null)
                 mainView.onReleaseBody(body);
-            if (capture == CAPTURE_WIDGET && knob != null)
-                mainView.onReleaseWidget(knob);
+            if (capture == CAPTURE_KNOB && knob != null)
+                mainView.onReleaseKnob(knob);
             //if (capture == CAPTURE_BACKGROUND)  mainView.onRelease???;
             capture = 0;
         }
@@ -101,7 +101,7 @@ public class InputListener implements View.OnTouchListener
            MOVE TOUCH
          */
         else {
-            if (capture == CAPTURE_WIDGET && (wasDown &1)==1) {
+            if (capture == CAPTURE_KNOB && (wasDown &1)==1) {
                 knob.onTouchMove(isDown,mainView.toDevice(touch[0]));
             }
             if (capture == CAPTURE_BODY && mainView.controlPanel.mode == MODE_DEL){

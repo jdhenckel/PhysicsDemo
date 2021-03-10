@@ -6,7 +6,6 @@ import android.graphics.Paint;
 import org.jbox2d.common.Vec2;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /*
@@ -14,7 +13,7 @@ This class manages all the stuff on the screen that is NOT part of the world
  */
 public class ControlPanel
 {
-    HashMap<String, Knob> widgetList;
+    List<Knob> knobList;
     List<String> log;
     Paint paint;
     int mode;
@@ -28,7 +27,7 @@ public class ControlPanel
 
     ControlPanel()
     {
-        widgetList = new HashMap<>();
+        knobList = new ArrayList<>();
         log = new ArrayList<>();
         paint = new Paint();
         debugLines = new float[100];
@@ -38,21 +37,28 @@ public class ControlPanel
     {
         int u = width / 200;
         Knob.u = u;
-        widgetList.put("play", new Knob(u, u, "pause/play"));
-        int w = widgetList.get("play").rect.right;
-        widgetList.put("mode", new Knob(width - w - u, u, "VIEW/ADD/GRAB/DEL"));
-        widgetList.put("shape", new Knob(width - w - u, u + w, "BALL/BOX/JOIN"));
-        widgetList.put("layer", new Knob(width - w - u, u + 2*w, "LAYER+b"));
+        knobList.add(new Knob("play", u, u, "PAUSE/PLAY"));
+        int w = knobList.get(0).rect.right;
+     //   knobList.add(new Knob("mode", width - w - u, u, "VIEW/ADD/GRAB/DEL"));
+        knobList.add(new Knob("mode0", width - 4*w - u, u, "VIEW"));
+        knobList.add(new Knob("mode3", width - 3*w - u, u, "DEL"));
+        knobList.add(new Knob("mode2", width - 2*w - u, u, "GRAB"));
+        knobList.add(new Knob("mode1", width - w - u, u, "ADD"));
+        knobList.add(new Knob("shape", width - w - u, u + w, "BALL/BOX/JOIN"));
+        knobList.add(new Knob("layer", width - w - u, u + 2 * w, "LAYER+b"));
     }
 
-    Knob get(String s) {
-        return widgetList.containsKey(s)?widgetList.get(s):null;
+    Knob get(String s)
+    {
+        for (Knob k : knobList)
+            if (k.name.equalsIgnoreCase(s)) return k;
+        return null;
     }
 
     void onDraw(Canvas canvas)
     {
         drawGrid(canvas);
-        drawWidgets(canvas);
+        drawKnobs(canvas);
         drawLog(canvas);
     }
 
@@ -86,14 +92,14 @@ public class ControlPanel
         }
     }
 
-    void drawWidgets(Canvas canvas)
+    void drawKnobs(Canvas canvas)
     {
         int i = 0;
-        for (Knob w : widgetList.values())
+        for (Knob knob : knobList)
         {
-            w.onDraw(canvas);
+            knob.onDraw(canvas);
             ++i;
-            if (mode != 1 && i == 2) break;
+            if (mode != 1 && i == 5) break;
         }
     }
 
@@ -103,7 +109,7 @@ public class ControlPanel
         {
             paint.setColor(0xFFFFFF80);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(5/scale);
+            paint.setStrokeWidth(5 / scale);
             canvas.drawLines(debugLines, 0, numDebugLines, paint);
         }
         numDebugLines = 0;
@@ -113,17 +119,18 @@ public class ControlPanel
     // Call this twice to make a line
     public void addDebugPoint(Vec2 p)
     {
-        if (numDebugLines + 2 <= debugLines.length) {
+        if (numDebugLines + 2 <= debugLines.length)
+        {
             debugLines[numDebugLines++] = p.x;
             debugLines[numDebugLines++] = p.y;
         }
     }
 
 
-    Knob findWidget(Vec2 v)
+    Knob findKnob(Vec2 v)
     {
-        for (Knob w : widgetList.values())
-            if (w.rect.contains((int)v.x, (int)v.y)) return w;
+        for (Knob knob : knobList)
+            if (knob.rect.contains((int) v.x, (int) v.y)) return knob;
         return null;
     }
 
@@ -151,6 +158,12 @@ public class ControlPanel
         canvas.drawRect(3 * i, 10 * i + t - i, 4 * i, 10 * i + t, paint);
     }
 
+    public void setMode(int m)
+    {
+        get("mode"+mode).bright = false;
+        get("mode"+m).bright = true;
+        mode = m;
+    }
 }
 
 

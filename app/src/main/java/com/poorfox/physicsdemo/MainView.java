@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.view.View;
+import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.BodyType;
@@ -122,14 +123,22 @@ public class MainView extends View
     void adjustScale(){
         scale = Pinch.getScaleFromMatrix(cameraMatrix);
         float meters = height / scale;
-        float rate = 0.2f;
-        float ds;
-        if (meters < 0.1f) ds = meters / (meters + rate * (0.11f - meters));
-        else if (meters > 1000.f) ds = meters / (meters - rate * (meters - 900.f));
-        else return;
+        float ds = meters / slowClamp(meters, .01f, 1000.f, .1f);
+        if (ds == 1.f) return;
         Vec2 c = toWorld(new Vec2(width/2, height/2));
         cameraMatrix.preScale(ds,ds,c.x,c.y);
         scale = Pinch.getScaleFromMatrix(cameraMatrix);
+    }
+
+
+    static float slowClamp(float x, float low, float high, float rate)
+    {
+        // Clamp x to [low high] slowly
+        assert rate >0 && rate<1&& low<high;
+        if (low > high) return x;
+        if (x < low) return x + rate*(low-x);
+        if (x > high) return x - rate*(x-high);
+        return x;
     }
 
     public void print(String s)
@@ -160,9 +169,9 @@ public class MainView extends View
         return Pinch.rotate(w, -body.getAngle());
     }
 
-    public Knob findWidget(Vec2 v)
+    public Knob findKnob(Vec2 v)
     {
-        return controlPanel.findWidget(toDevice(v));
+        return controlPanel.findKnob(toDevice(v));
     }
 
     public Body findBody(Vec2 v)
@@ -179,16 +188,18 @@ public class MainView extends View
     }
 
 
-    public void onReleaseWidget(Knob knob)
+    public void onReleaseKnob(Knob knob)
     {
         knob.onTouchEnd();
         String name = knob.name.toLowerCase();
-        if (name.startsWith("pause")) {
+        if (name.startsWith("play")) {
             mainWorld.isRunning = knob.mode == 0;
             mainWorld.singleStep = knob.mode == 1;
         }
-        if (name.startsWith("view"))
-            controlPanel.mode = knob.mode;
+        if (name.startsWith("mode"))
+        {
+            controlPanel.setMode(Integer.parseInt(name.substring(4)));
+        }
     }
 
     public void onEndBackgroundPinch(Pinch pinch)

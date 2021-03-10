@@ -19,6 +19,7 @@ public class Knob
     int value;
     String[] subText;
     int base;
+    boolean bright;
 
     static String unicodeMap = ",cut=\u2700,pause=\u25a0,play=\u25b6";
 
@@ -28,35 +29,36 @@ public class Knob
         return i < 0 ? s : unicodeMap.charAt(i + 2 + s.length()) + "";
     }
 
-    Knob(int x, int y, String name)
+    Knob(String name, int x, int y, String text)
     {
         paint = new Paint();
         rect = new Rect(x, y, x + 20 * u, y + 20 * u);
         this.name = name;
         mode = 0;
-        if (name.contains("/"))
+        if (text.contains("/"))
         {
-            subText = name.split("/");
+            subText = text.split("/");
         }
-        else if (name.endsWith("+b"))
+        else if (text.endsWith("+b"))
         {
-            subText = new String[]{name.substring(0, name.length() - 2)};
+            subText = new String[]{text.substring(0, text.length() - 2)};
             base = 2;
         }
-        else if (name.endsWith("+v"))
+        else if (text.endsWith("+v"))
         {
-            subText = new String[]{name.substring(0, name.length() - 2)};
+            subText = new String[]{text.substring(0, text.length() - 2)};
             base = 1;
         }
-        else if (name.endsWith("+f"))
+        else if (text.endsWith("+f"))
         {
-            subText = new String[]{name.substring(0, name.length() - 2)};
+            subText = new String[]{text.substring(0, text.length() - 2)};
             base = 100;
         }
-        else subText = new String[]{name};
-        for (int i = 0; i < subText.length; ++i) subText[i] = unicode(subText[i]);
+        else subText = new String[]{text};
+     //   for (int i = 0; i < subText.length; ++i) subText[i] = unicode(subText[i]);
         r = 2 * u;
         value = 1;
+        bright = !name.startsWith("mode");
     }
 
     void onDraw(Canvas canvas)
@@ -67,9 +69,10 @@ public class Knob
         // grey border
         drawRect(canvas, u, 0, dn, r, Color.rgb(63, 84, 89));
         // ivory button face
-        drawRect(canvas, u, -2 * u, dn, r, Color.rgb(213, 221, 224));
+        int c = bright?Color.rgb(213, 221, 224):Color.rgb(133, 141, 144);
+        drawRect(canvas, u, -2 * u, dn, r, c);
         // Text
-        int c = Color.rgb(52, 57, 59);
+        c = Color.rgb(52, 57, 59);
         drawText(canvas, subText[mode], base > 0 ? 0 : 1, dn, c);
         if (base == 1)
             drawText(canvas, value + "", 2, dn, c);
@@ -107,7 +110,7 @@ public class Knob
     void drawText(Canvas canvas, String text, int halfLine, int shift, int color)
     {
         int w = rect.right - rect.left;
-        int s = w / Math.max(text.length(), 2);
+        int s = w / Math.max(text.length(), 4);
         paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(s);
