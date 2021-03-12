@@ -89,6 +89,14 @@ public class Pinch
     }
 
 
+    public static Vec2 mulVector(Matrix m, Vec2 v)
+    {
+        m.getValues(temp);
+        return new Vec2(temp[0]*v.x + temp[1]*v.y,
+                temp[3]*v.x + temp[4]*v.y);
+    }
+
+
     public static Vec2 rotate(Vec2 v, float radians)
     {
         float c = MathUtils.cos(radians);

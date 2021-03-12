@@ -14,6 +14,7 @@ public class BodyMaker
 {
     BodyDef bodyDef;
     FixtureDef fixtureDef;
+    int color;
 
     public BodyMaker() {
         bodyDef = new BodyDef();
@@ -33,13 +34,38 @@ public class BodyMaker
         return this;
     }
 
-    public Body addTo(World world, Vec2 pos)
+
+    public BodyMaker color(int c)
+    {
+        color = c;
+        return this;
+    }
+
+    public Body addTo(World world, float px, float py, float rot)
+    {
+        return addTo(world, new Vec2(px,py), rot);
+    }
+
+    public Body addTo(World world, float px, float py)
+    {
+        return addTo(world, new Vec2(px,py), 0);
+    }
+
+    public Body addTo(World world, Vec2 pos, float rot)
     {
         bodyDef.setPosition(pos);
+        bodyDef.setAngle(rot);
         Body b = world.createBody(bodyDef);
         b.createFixture(fixtureDef);
-        b.setUserData(new BodyPainter(b));
+        BodyPainter p = new BodyPainter(b);
+        if (color != 0) p.paint.setColor(color);
+        b.setUserData(p);
         return b;
+    }
+
+    public Body addTo(World world, Vec2 pos)
+    {
+        return addTo(world, pos, 0);
     }
 
     public BodyMaker box(float halfWidth, float halfHeight)

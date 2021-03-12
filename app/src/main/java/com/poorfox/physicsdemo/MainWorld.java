@@ -1,6 +1,7 @@
 package com.poorfox.physicsdemo;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
 import org.jbox2d.dynamics.joints.JointEdge;
@@ -12,6 +13,7 @@ public class MainWorld
     int velocityIterations, positionIterations;
     boolean isRunning;
     boolean singleStep;
+    Vec2 limit;
 
     /*
          Box2D tolerances have been tuned to work well with meters-kilogram-second (MKS) units.
@@ -23,24 +25,47 @@ public class MainWorld
     {
         Vec2 gravity = new Vec2(0.0f, -10.0f);
         world = new World(gravity);
+        limit = new Vec2(1000,500);
     }
 
     public void initialize(float w, float h)
     {
-        BodyMaker.create().ball(w / 14).layer(1).addTo(world, new Vec2(w / 2, h / 2));
-        BodyMaker.create().box(w / 14, w / 20).layer(1).addTo(world, new Vec2(w / 2.5f, h / 3));
-        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, new Vec2(w / 2.5f, h / 2.5f));
-        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, new Vec2(w / 2.5f, h / 1.7f));
+        BodyMaker.create().ball(w / 14).layer(1).addTo(world, w / 2, h / 2);
+        BodyMaker.create().box(w / 14, w / 20).layer(1).addTo(world, w / 2.5f, h / 3);
+        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, w / 2.5f, h / 2.5f);
+        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, w / 2.5f, h / 1.7f);
 
         // add four immovable walls (top, bottom, left, right)
+        /*
         float t = w / 20;
-        BodyMaker.create().immovable().box(w / 2, t).addTo(world, new Vec2(w / 2, 0));
-        BodyMaker.create().immovable().box(w / 2, t).addTo(world, new Vec2(w / 2, h));
-        BodyMaker.create().immovable().box(t, h / 2).addTo(world, new Vec2(0, h / 2));
-        BodyMaker.create().immovable().box(t, h / 2).addTo(world, new Vec2(w, h / 2));
+        BodyMaker.create().immovable().box(w / 2, t).addTo(world, w / 2, 0);
+        BodyMaker.create().immovable().box(w / 2, t).addTo(world, w / 2, h);
+        BodyMaker.create().immovable().box(t, h / 2).addTo(world, 0, h / 2);
+        BodyMaker.create().immovable().box(t, h / 2).addTo(world, w, h / 2);
+
+         */
         isRunning = true;
         velocityIterations = 6;
         positionIterations = 3;
+
+        createBoundary();
+    }
+
+    void createBoundary()
+    {
+        int g = Color.DKGRAY;
+        int gr = Color.GREEN;
+        float i,s=25;
+        for (i = -limit.x; i < limit.x+s*1.1f; i += s*2){
+            BodyMaker.create().immovable().box(s,s).color(g).addTo(world, i,-limit.y-s);
+            BodyMaker.create().immovable().box(s,s).color(g).addTo(world, i,limit.y+s);
+            float t = i*i>8e3f?MathUtils.randomFloat(-.2f,.2f):0;
+            BodyMaker.create().immovable().box(s*1.06f,s*.7f).color(gr).addTo(world, i,-s*.7f,t);
+        }
+        for (i = -limit.y; i < limit.y+s*1.1f; i += s*2){
+            BodyMaker.create().immovable().box(s,s).color(g).addTo(world, -limit.x-s,i);
+            BodyMaker.create().immovable().box(s,s).color(g).addTo(world, limit.x+s,i);
+        }
     }
 
     public void step(float dt)

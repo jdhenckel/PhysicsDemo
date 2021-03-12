@@ -13,9 +13,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.poorfox.physicsdemo.ControlPanel.MODE_DEL;
-import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
+import static com.poorfox.physicsdemo.Pinch.getAngleFromMatrix;
 import static com.poorfox.physicsdemo.Pinch.inverse;
 import static com.poorfox.physicsdemo.Pinch.mul;
+import static com.poorfox.physicsdemo.Pinch.mulVector;
+import static com.poorfox.physicsdemo.Pinch.rotate;
 
 public class MainView extends View
 {
@@ -91,7 +93,7 @@ public class MainView extends View
     {
         super.onDraw(canvas);
         if (firstTime) initialize();
-        adjustScale();
+        applyCameraLimits();
         inputListener.applyGrabForce();
 
         worldStep();
@@ -120,24 +122,35 @@ public class MainView extends View
         timing.stopSim();
     }
 
-    void adjustScale(){
+    void applyCameraLimits()
+    {
         scale = Pinch.getScaleFromMatrix(cameraMatrix);
-        float meters = height / scale;
-        float ds = meters / slowClamp(meters, .01f, 1000.f, .1f);
-        if (ds == 1.f) return;
-        Vec2 c = toWorld(new Vec2(width/2, height/2));
-        cameraMatrix.preScale(ds,ds,c.x,c.y);
-        scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        float w = height / scale;
+        Vec2 h = new Vec2(width / 2, height / 2);
+        Vec2 c = toWorld(h);
+        float ds = w / slowClamp(w, .01f, 1000.f, .1f);
+        if (MathUtils.abs(ds - 1) > .01f)
+        {
+            cameraMatrix.preScale(ds, ds, c.x, c.y);
+            scale = Pinch.getScaleFromMatrix(cameraMatrix);
+        }
+
+        float r = mainWorld.limit.length();
+        float b = c.length() + h.length() / scale;
+        if (b > r) {
+            c = c.mulLocal((b - r)*.1f/b);
+            cameraMatrix.preTranslate(c.x, c.y);
+        }
     }
 
 
     static float slowClamp(float x, float low, float high, float rate)
     {
         // Clamp x to [low high] slowly
-        assert rate >0 && rate<1&& low<high;
+        assert rate > 0 && rate < 1 && low < high;
         if (low > high) return x;
-        if (x < low) return x + rate*(low-x);
-        if (x > high) return x - rate*(x-high);
+        if (x < low) return x + rate * (low - x);
+        if (x > high) return x - rate * (x - high);
         return x;
     }
 
@@ -155,12 +168,17 @@ public class MainView extends View
     Vec2 toDevice(Vec2 v)
     {
         // implicit inverse of the deviceMatrix
-        return  new Vec2((int) v.y, width - (int) v.x);
+        return new Vec2((int) v.y, width - (int) v.x);
     }
 
     Vec2 toWorld(Vec2 v)
     {
         return mul(inverse(cameraMatrix), v);
+    }
+
+    Vec2 toWorldVector(Vec2 v)
+    {
+        return mulVector(inverse(cameraMatrix), v);
     }
 
     Vec2 toBody(Body body, Vec2 v)
@@ -192,7 +210,8 @@ public class MainView extends View
     {
         knob.onTouchEnd();
         String name = knob.name.toLowerCase();
-        if (name.startsWith("play")) {
+        if (name.startsWith("play"))
+        {
             mainWorld.isRunning = knob.mode == 0;
             mainWorld.singleStep = knob.mode == 1;
         }
@@ -224,11 +243,16 @@ public class MainView extends View
 
     public Body addBody(Vec2 pos)
     {
-        float r = 100/scale;
+        float r = 100 / scale;
         BodyMaker m = BodyMaker.create();
-        switch (controlPanel.get("shape").mode){
-        case 0: m.ball(r); break;
-        case 1: m.box(2*r,r); break;
+        switch (controlPanel.get("shape").mode)
+        {
+        case 0:
+            m.ball(r);
+            break;
+        case 1:
+            m.box(2 * r, r);
+            break;
         //case 2: m.joint(); break;
         }
         m.layer(controlPanel.get("layer").value);
