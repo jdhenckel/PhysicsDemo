@@ -253,7 +253,9 @@ public class MainView extends View
         case 1:
             m.box(2 * r, r);
             break;
-        //case 2: m.joint(); break;
+        case 2:
+            m.joint();
+            break;
         }
         m.layer(controlPanel.get("layer").value);
         return m.addTo(mainWorld.world, pos);

@@ -4,7 +4,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
+import org.jbox2d.dynamics.joints.Joint;
+import org.jbox2d.dynamics.joints.JointDef;
 import org.jbox2d.dynamics.joints.JointEdge;
+import org.jbox2d.dynamics.joints.JointType;
+import org.jbox2d.dynamics.joints.RevoluteJointDef;
 
 public class MainWorld
 {
@@ -30,10 +34,19 @@ public class MainWorld
 
     public void initialize(float w, float h)
     {
+        float hx=w/14,hy=w/20;
         BodyMaker.create().ball(w / 14).layer(1).addTo(world, w / 2, h / 2);
-        BodyMaker.create().box(w / 14, w / 20).layer(1).addTo(world, w / 2.5f, h / 3);
-        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, w / 2.5f, h / 2.5f);
-        BodyMaker.create().box(w / 14, w / 20).layer(2).addTo(world, w / 2.5f, h / 1.7f);
+        Body a = BodyMaker.create().box(hx,hy).layer(2).addTo(world, 5*hx,6*hy);
+        Body b = BodyMaker.create().box(hx,hy).layer(2).addTo(world, 7*hx,8*hy);
+        BodyMaker.create().box(hx,hy).layer(2).addTo(world, w / 2.5f, h / 1.7f);
+
+        RevoluteJointDef jointDef = new RevoluteJointDef();
+        jointDef.initialize(a,b,new Vec2(6*hx,7*hy));
+     //   jointDef.collideConnected = true;
+        jointDef.enableLimit = true;
+        jointDef.lowerAngle = rads(-90);
+        jointDef.upperAngle = rads(90);
+        Joint j = world.createJoint(jointDef);
 
         // add four immovable walls (top, bottom, left, right)
         /*
@@ -49,6 +62,11 @@ public class MainWorld
         positionIterations = 3;
 
         createBoundary();
+    }
+
+    static float rads(float degs)
+    {
+        return degs * 3.1415926f / 180;
     }
 
     void createBoundary()

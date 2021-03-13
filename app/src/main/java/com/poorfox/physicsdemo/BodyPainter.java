@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import org.jbox2d.collision.shapes.PolygonShape;
 import org.jbox2d.collision.shapes.Shape;
+import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.Fixture;
@@ -20,20 +21,22 @@ public class BodyPainter
     Paint paint;
     Path path;
     Joint selectedJoint;
+    float bigness;
     static Paint jointPaint;
     static Paint highlightPaint;
 
     static  {
         jointPaint = new Paint();
         jointPaint.setStyle(Paint.Style.FILL);
-        jointPaint.setColor(0xFF404040);
+        jointPaint.setColor(0xFF777777);
         highlightPaint = new Paint();
         highlightPaint.setStyle(Paint.Style.STROKE);
         highlightPaint.setColor(0xFFFFFF40);
     }
 
-    public BodyPainter(Body body)
+    public BodyPainter(float bigness)
     {
+        this.bigness = bigness;   // Approx average radius of the shape
         paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(randomColor());
@@ -60,16 +63,22 @@ public class BodyPainter
         for (JointEdge j = body.getJointList(); j != null; j = j.next)
         {
             if (j.joint.getBodyA() == body)
-                drawJoint(canvas, j.joint, pos, ang, scale, jointPaint);
+                drawJoint(canvas, j.joint, pos, ang, jointPaint);
         }
     }
 
-    static void drawJoint(Canvas canvas, Joint joint, Vec2 pos, float ang, float scale, Paint paint)
+    static void drawJoint(Canvas canvas, Joint joint, Vec2 pos, float ang, Paint paint)
     {
         Vec2 p = new Vec2();
         joint.getAnchorA(p);
-        p = Pinch.rotate(p, ang).addLocal(pos);
-        canvas.drawCircle(p.x, p.y, 20 / scale, paint);
+        float r = MathUtils.min(bigness(joint.getBodyA()), bigness(joint.getBodyB())) / 10;
+        canvas.drawCircle(p.x, p.y, r, paint);
+    }
+
+    static float bigness(Body b)
+    {
+        BodyPainter p = (BodyPainter) b.getUserData();
+        return p==null?5.f:p.bigness;
     }
 
     void drawShape(Canvas canvas, Shape shape, Vec2 pos, float ang, Paint paint){
@@ -105,7 +114,7 @@ public class BodyPainter
         }
         else
         {
-            drawJoint(canvas, bp.selectedJoint, pos, ang, scale, highlightPaint);
+            drawJoint(canvas, bp.selectedJoint, pos, ang, highlightPaint);
         }
     }
 
