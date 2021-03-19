@@ -2,22 +2,20 @@ package com.poorfox.physicsdemo;
 
 import org.jbox2d.collision.shapes.CircleShape;
 import org.jbox2d.collision.shapes.PolygonShape;
-import org.jbox2d.collision.shapes.Shape;
+import org.jbox2d.common.MathUtils;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.BodyDef;
 import org.jbox2d.dynamics.BodyType;
 import org.jbox2d.dynamics.FixtureDef;
 import org.jbox2d.dynamics.World;
-import org.jbox2d.dynamics.joints.JointDef;
-import org.jbox2d.dynamics.joints.JointType;
 
 public class BodyMaker
 {
     BodyDef bodyDef;
     FixtureDef fixtureDef;
     int color;
-    float bigness;
+    float thickness;
 
     public BodyMaker()
     {
@@ -62,7 +60,7 @@ public class BodyMaker
         bodyDef.setAngle(rot);
         Body b = world.createBody(bodyDef);
         b.createFixture(fixtureDef);
-        BodyPainter p = new BodyPainter(bigness);
+        BodyPainter p = new BodyPainter(thickness);
         if (color != 0) p.paint.setColor(color);
         b.setUserData(p);
         return b;
@@ -78,7 +76,7 @@ public class BodyMaker
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(halfWidth, halfHeight);
         fixtureDef.setShape(shape);
-        bigness = (halfWidth + halfHeight) / 2;
+        thickness = MathUtils.min(halfWidth, halfHeight) * 2;
         return this;
     }
 
@@ -87,7 +85,7 @@ public class BodyMaker
         CircleShape shape = new CircleShape();
         shape.setRadius(rad);
         fixtureDef.setShape(shape);
-        bigness = rad;
+        thickness = 2*rad;
         return this;
     }
 
@@ -95,6 +93,23 @@ public class BodyMaker
     {
         fixtureDef.getFilter().maskBits = g;
         fixtureDef.getFilter().categoryBits = g;
+        return this;
+    }
+
+    public BodyMaker shape(int shapeType, float r){
+        r = MathUtils.clamp(r, 0.05f, 5.0f);
+        switch (shapeType)
+        {
+        case 0:
+            ball(r);
+            break;
+        case 1:
+            box(2 * r, r);
+            break;
+        case 2:
+            joint();
+            break;
+        }
         return this;
     }
 

@@ -13,6 +13,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.poorfox.physicsdemo.ControlPanel.MODE_DEL;
+import static com.poorfox.physicsdemo.ControlPanel.MODE_GRAB;
 import static com.poorfox.physicsdemo.Pinch.getAngleFromMatrix;
 import static com.poorfox.physicsdemo.Pinch.inverse;
 import static com.poorfox.physicsdemo.Pinch.mul;
@@ -32,6 +33,7 @@ public class MainView extends View
     Timing timing;
     MainWorld mainWorld;
     float scale;       // pixels per meter
+    Vec2 saveDamping;
 
     public MainView(Context context)
     {
@@ -43,6 +45,7 @@ public class MainView extends View
         firstTime = true;
         controlPanel = new ControlPanel();
         scale = 200;
+        saveDamping = new Vec2();
     }
 
 
@@ -199,8 +202,11 @@ public class MainView extends View
 
     public void onReleaseBody(Body body)
     {
-        body.setLinearDamping(0);
-        body.setAngularDamping(0);
+        if (controlPanel.mode == MODE_GRAB)
+        {
+            body.setLinearDamping(saveDamping.x);
+            body.setAngularDamping(saveDamping.y);
+        }
         if (controlPanel.mode == MODE_DEL)
             mainWorld.world.destroyBody(body);
     }
@@ -235,28 +241,16 @@ public class MainView extends View
 
     public void onGrab(Body body)
     {
-        if (body.getType() != BodyType.DYNAMIC) // || controlPanel.mode != MODE_GRAB)
-            return;
-        body.setLinearDamping(10.f);    //  ?????
+        if (body.getType() != BodyType.DYNAMIC) return;
+        saveDamping.set(body.getLinearDamping(), body.getAngularDamping());
+        body.setLinearDamping(10.f);
         body.setAngularDamping(10.f);
     }
 
     public Body addBody(Vec2 pos)
     {
-        float r = 100 / scale;
         BodyMaker m = BodyMaker.create();
-        switch (controlPanel.get("shape").mode)
-        {
-        case 0:
-            m.ball(r);
-            break;
-        case 1:
-            m.box(2 * r, r);
-            break;
-        case 2:
-            m.joint();
-            break;
-        }
+        m.shape(controlPanel.get("shape").mode, 100 / scale);
         m.layer(controlPanel.get("layer").value);
         return m.addTo(mainWorld.world, pos);
     }

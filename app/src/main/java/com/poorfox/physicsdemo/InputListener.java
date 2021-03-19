@@ -6,6 +6,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
+import org.jbox2d.dynamics.BodyType;
 
 import static android.view.MotionEvent.ACTION_CANCEL;
 import static android.view.MotionEvent.ACTION_DOWN;
@@ -35,6 +36,7 @@ public class InputListener implements View.OnTouchListener
     public InputListener(MainView mainView)
     {
         this.mainView = mainView;
+        pinch = new Pinch();
         touch = new Vec2[10];
         for (int i = 0; i < touch.length; ++i) touch[i] = new Vec2();
         firstTouch = new Vec2[2];
@@ -86,12 +88,12 @@ public class InputListener implements View.OnTouchListener
 
         if (isDown != wasDown)
         {
-            if (capture == CAPTURE_BACKGROUND && pinch != null && (wasDown&3) != 0)
+            if (capture == CAPTURE_BACKGROUND && (wasDown&3) != 0)
                 mainView.onEndBackgroundPinch(pinch);
-            startPinch(3);
+            startPinch();
         }
         else if (isDown != 0)
-            pinch = getPinch();
+            computePinch();
 
         if ((isDown & 3) > (wasDown & 3))
         {
@@ -119,7 +121,7 @@ public class InputListener implements View.OnTouchListener
          */
         else
         {
-            pinch = getPinch();
+            computePinch();
             if (capture == CAPTURE_KNOB && (isDown & 1) == 1)
             {
                 knob.onTouchMove(isDown, mainView.toDevice(touch[0]));
@@ -142,26 +144,25 @@ public class InputListener implements View.OnTouchListener
 
 
     // Call this to reset the pan/zoom/rotation to the identity
-    public void startPinch(int flag)
+    public void startPinch()
     {
-        if ((flag&1) == 1) firstTouch[0].set(touch[0]);
-        if ((flag&2) == 2) firstTouch[1].set(touch[1]);
-        pinch = null;  //???
+        firstTouch[0].set(touch[0]);
+        firstTouch[1].set(touch[1]);
     }
 
 
-    private Pinch getPinch()    // TODO --- needless object creation!
+    private void computePinch()
     {
         if (isDown == 1)
         {
             Vec2 t = touch[0].sub(firstTouch[0]);
-            return new Pinch(t, new Vec2(), 0, 1);
+            pinch.set(t, new Vec2(), 0, 1);
         }
-        if ((isDown & 2) == 2)
+        else if ((isDown & 2) == 2)
         {
             Vec2 t = touch[0].sub(firstTouch[0]).addLocal(touch[1]).subLocal(firstTouch[1]).mulLocal(0.5f);
             Vec2 c = touch[0].add(touch[1]).mulLocal(0.5f);
-            Pinch pinch = new Pinch(t, c, 0, 1);
+            pinch.set(t, c, 0, 1);
 
             Vec2 a = firstTouch[0].sub(firstTouch[1]);
             Vec2 b = touch[0].sub(touch[1]);
@@ -173,14 +174,13 @@ public class InputListener implements View.OnTouchListener
                 pinch.rotation = Pinch.angleFrom(a, b);
                 pinch.scale = blen / alen;
             }
-            return pinch;
         }
-        return new Pinch(1);
+        else pinch.reset();
     }
 
     Matrix getPinchMatrix()
     {
-        return pinch == null ? null : pinch.getMatrix();
+        return pinch.getMatrix();
     }
 
     Matrix getBackgroundPinchMatrix()
@@ -196,7 +196,7 @@ public class InputListener implements View.OnTouchListener
         Vec2 handle = r.add(body.getPosition());
         Vec2 target = mainView.toWorld(touch[0]);
         mainView.addDebugLine(handle, target);
-        if (isRunning)
+        if (isRunning && body.getType() == BodyType.DYNAMIC)
         {
             // Drag using forces
             body.applyForce(target.subLocal(handle).mulLocal(body.getMass() * 40), handle);
@@ -208,7 +208,7 @@ public class InputListener implements View.OnTouchListener
             body.setTransform(target.subLocal(handle).mulLocal(rate).addLocal(body.getPosition()),
                     body.getAngle() + rate * da);
         }
-        else if (pinch != null)
+        else
         {
             // Two finger drag
             body.setTransform(target.subLocal(handle).mulLocal(rate).addLocal(body.getPosition()),

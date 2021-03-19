@@ -13,19 +13,26 @@ public class Pinch
 
     private static float[] temp = new float[9];
 
-    Pinch(float scale)
+    Pinch()
     {
         translation = new Vec2();
         center = new Vec2();
-        this.scale = scale;
+        this.scale = 1;
     }
 
-    Pinch(Vec2 translation, Vec2 center, float rotation, float scale)
+    void set(Vec2 translation, Vec2 center, float rotation, float scale)
     {
         this.translation = translation;
         this.center = center;
         this.rotation = rotation;
         this.scale = scale;
+    }
+
+    void reset() {
+        translation.set(0,0);
+        center.set(0,0);
+        rotation = 0;
+        scale = 1;
     }
 
     // return angle in radians from a to b

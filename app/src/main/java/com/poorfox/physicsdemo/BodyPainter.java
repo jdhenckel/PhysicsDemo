@@ -21,7 +21,7 @@ public class BodyPainter
     Paint paint;
     Path path;
     Joint selectedJoint;
-    float bigness;
+    float thickness;
     static Paint jointPaint;
     static Paint highlightPaint;
 
@@ -34,9 +34,9 @@ public class BodyPainter
         highlightPaint.setColor(0xFFFFFF40);
     }
 
-    public BodyPainter(float bigness)
+    public BodyPainter(float thickness)
     {
-        this.bigness = bigness;   // Approx average radius of the shape
+        this.thickness = thickness;   // Approx average radius of the shape
         paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(randomColor());
@@ -63,22 +63,34 @@ public class BodyPainter
         for (JointEdge j = body.getJointList(); j != null; j = j.next)
         {
             if (j.joint.getBodyA() == body)
-                drawJoint(canvas, j.joint, pos, ang, jointPaint);
+                drawJoint(canvas, j.joint, jointPaint);
         }
     }
 
-    static void drawJoint(Canvas canvas, Joint joint, Vec2 pos, float ang, Paint paint)
+    static void drawJoint(Canvas canvas, Joint joint, Paint paint)
     {
-        Vec2 p = new Vec2();
-        joint.getAnchorA(p);
-        float r = MathUtils.min(bigness(joint.getBodyA()), bigness(joint.getBodyB())) / 10;
-        canvas.drawCircle(p.x, p.y, r, paint);
+        Vec2 pA = new Vec2();
+        joint.getAnchorA(pA);
+        float r = jointSize(thickness(joint.getBodyA()), thickness(joint.getBodyB()));
+        canvas.drawCircle(pA.x, pA.y, r, paint);
+        Vec2 pB = new Vec2();
+        joint.getAnchorB(pB);
+        float d = MathUtils.distance(pA,pB);
+        if (d > r) canvas.drawCircle(pB.x, pB.y, r, paint);
+        if (d > r*2.5f) {
+            paint.setStrokeWidth(r/4);
+            canvas.drawLine(pA.x, pA.y, pB.x, pB.y, paint);
+        }
     }
 
-    static float bigness(Body b)
+    static float jointSize(float t1, float t2) {
+        return MathUtils.min(MathUtils.min(t1, t2) * .33f, MathUtils.max(t1, t2) * .1f);
+    }
+
+    static float thickness(Body b)
     {
         BodyPainter p = (BodyPainter) b.getUserData();
-        return p==null?5.f:p.bigness;
+        return p==null?5.f:p.thickness;
     }
 
     void drawShape(Canvas canvas, Shape shape, Vec2 pos, float ang, Paint paint){
@@ -114,7 +126,7 @@ public class BodyPainter
         }
         else
         {
-            drawJoint(canvas, bp.selectedJoint, pos, ang, highlightPaint);
+            drawJoint(canvas, bp.selectedJoint, highlightPaint);
         }
     }
 
