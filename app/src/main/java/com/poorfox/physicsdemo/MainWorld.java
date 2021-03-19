@@ -40,33 +40,13 @@ public class MainWorld
         Body b = BodyMaker.create().box(hx,hy).layer(2).addTo(world, 7*hx,8*hy);
         BodyMaker.create().box(hx,hy).layer(2).addTo(world, w / 2.5f, h / 1.7f);
 
-        RevoluteJointDef jointDef = new RevoluteJointDef();
-        jointDef.initialize(a,b,new Vec2(6*hx,7*hy));
-     //   jointDef.collideConnected = true;
-        jointDef.enableLimit = true;
-        jointDef.lowerAngle = rads(-90);
-        jointDef.upperAngle = rads(90);
-        Joint j = world.createJoint(jointDef);
+        JointMaker.create(a,b,new Vec2(6*hx,7*hy)).revolute().limitDeg(-90,90).addTo(world);
 
-        // add four immovable walls (top, bottom, left, right)
-        /*
-        float t = w / 20;
-        BodyMaker.create().immovable().box(w / 2, t).addTo(world, w / 2, 0);
-        BodyMaker.create().immovable().box(w / 2, t).addTo(world, w / 2, h);
-        BodyMaker.create().immovable().box(t, h / 2).addTo(world, 0, h / 2);
-        BodyMaker.create().immovable().box(t, h / 2).addTo(world, w, h / 2);
-
-         */
         isRunning = true;
         velocityIterations = 6;
         positionIterations = 3;
 
         createBoundary();
-    }
-
-    static float rads(float degs)
-    {
-        return degs * 3.1415926f / 180;
     }
 
     void createBoundary()

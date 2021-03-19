@@ -94,7 +94,7 @@ public class MainView extends View
         super.onDraw(canvas);
         if (firstTime) initialize();
         applyCameraLimits();
-        inputListener.applyGrabForce();
+        inputListener.applyGrabForce(mainWorld.isRunning);
 
         worldStep();
 
