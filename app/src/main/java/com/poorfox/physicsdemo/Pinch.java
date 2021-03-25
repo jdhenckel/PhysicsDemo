@@ -95,6 +95,12 @@ public class Pinch
                 temp[3]*v.x + temp[4]*v.y + temp[5]);
     }
 
+    public static Vec2 mul(Matrix m, float x, float y)
+    {
+        m.getValues(temp);
+        return new Vec2(temp[0]*x + temp[1]*y + temp[2],
+                temp[3]*x + temp[4]*y + temp[5]);
+    }
 
     public static Vec2 mulVector(Matrix m, Vec2 v)
     {

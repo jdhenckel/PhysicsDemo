@@ -139,6 +139,7 @@ public class BodyPainter
 
     private static Path createPath(PolygonShape poly)
     {
+        assert poly != null;
         Path path = new Path();
         int n = poly.getVertexCount();
         if (n > 0)

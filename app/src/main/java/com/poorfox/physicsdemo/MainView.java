@@ -106,13 +106,14 @@ public class MainView extends View
         canvas.concat(cameraMatrix);
         mainWorld.onDraw(canvas, scale);
         controlPanel.drawDebugLines(canvas, scale);
+        controlPanel.drawGrid(canvas, cameraMatrix);
         inputListener.drawHighlights(canvas);
         canvas.restore();
 
         timing.startDraw();
         canvas.save();
         canvas.setMatrix(deviceMatrix);
-        controlPanel.onDraw(canvas);
+        controlPanel.onDraw(canvas, scale);
         canvas.restore();
         timing.stopDraw();
         controlPanel.drawTiming(canvas, timing);

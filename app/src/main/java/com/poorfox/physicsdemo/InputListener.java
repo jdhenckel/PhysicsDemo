@@ -28,6 +28,7 @@ public class InputListener implements View.OnTouchListener
     Body body;
     Vec2 bodyGrab;
     float bodyAngle;
+    boolean allowRotateBackground;
 
     static final int CAPTURE_BACKGROUND = 1;
     static final int CAPTURE_KNOB = 2;
@@ -174,6 +175,8 @@ public class InputListener implements View.OnTouchListener
                 pinch.rotation = Pinch.angleFrom(a, b);
                 pinch.scale = blen / alen;
             }
+            if (capture == CAPTURE_BACKGROUND && !allowRotateBackground)
+                pinch.rotation = 0;
         }
         else pinch.reset();
     }
